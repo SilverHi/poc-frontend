@@ -1,0 +1,21 @@
+{
+  "apiKey": "your-openai-api-key-here",
+  "baseURL": "https://api.openai.com/v1",
+  "models": [
+    {
+      "id": "gpt-4o-mini",
+      "name": "GPT-4o-mini",
+      "maxTokens": 8192,
+      "description": "Most capable model, best for complex tasks"
+    },
+    {
+      "id": "gpt-3.5-turbo",
+      "name": "GPT-3.5 Turbo",
+      "maxTokens": 4096,
+      "description": "Fast and efficient for most tasks"
+    }
+  ],
+  "defaultModel": "gpt-4o-mini",
+  "defaultTemperature": 0.7,
+  "defaultMaxTokens": 1000
+} 
