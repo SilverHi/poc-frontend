@@ -71,6 +71,13 @@ class ApiClient {
     });
   }
 
+  async optimizePrompt(prompt: string): Promise<{ optimized_prompt: string; logs: string[] }> {
+    return this.request('/agents/optimize-prompt', {
+      method: 'POST',
+      body: JSON.stringify({ prompt }),
+    });
+  }
+
   // Resource 相关 API
   async getResources(): Promise<StoredResource[]> {
     return this.request('/resources');
@@ -143,6 +150,11 @@ export const apiService = {
   // 删除代理
   async deleteAgent(agentId: string) {
     return apiClient.deleteAgent(agentId);
+  },
+
+  // 优化提示词
+  async optimizePrompt(prompt: string): Promise<{ optimized_prompt: string; logs: string[] }> {
+    return apiClient.optimizePrompt(prompt);
   },
 
   // 上传资源
