@@ -76,8 +76,8 @@ export default function ResourcesPage() {
     } catch (error) {
       console.error('Error fetching resources:', error);
       notification.error({
-        message: '获取资源失败',
-        description: '无法获取资源列表',
+        message: 'Failed to fetch resources',
+        description: 'Unable to get resource list',
         placement: 'topRight',
       });
     } finally {
@@ -88,8 +88,8 @@ export default function ResourcesPage() {
   const handleFileUpload = async () => {
     if (!selectedFile || !uploadTitle.trim()) {
       notification.warning({
-        message: '请检查输入',
-        description: '请选择文件并输入标题',
+        message: 'Please check input',
+        description: 'Please select a file and enter a title',
         placement: 'topRight',
       });
       return;
@@ -100,8 +100,8 @@ export default function ResourcesPage() {
       await apiService.uploadResource(selectedFile, uploadTitle, uploadDescription);
 
       notification.success({
-        message: '上传成功',
-        description: '文件上传成功！',
+        message: 'Upload successful',
+        description: 'File uploaded successfully!',
         placement: 'topRight',
       });
       setShowUploadModal(false);
@@ -112,8 +112,8 @@ export default function ResourcesPage() {
     } catch (error) {
       console.error('Upload error:', error);
       notification.error({
-        message: '上传失败',
-        description: '上传失败，请重试',
+        message: 'Upload failed',
+        description: 'Upload failed, please try again',
         placement: 'topRight',
       });
     } finally {
@@ -136,16 +136,16 @@ export default function ResourcesPage() {
       await apiService.deleteResource(resourceToDelete);
 
       notification.success({
-        message: '删除成功',
-        description: '资源删除成功！',
+        message: 'Deleted successfully',
+        description: 'Resource deleted successfully!',
         placement: 'topRight',
       });
       fetchResources(); // Refresh the list
     } catch (error) {
       console.error('Delete error:', error);
       notification.error({
-        message: '删除失败',
-        description: '删除失败，请检查网络连接后重试',
+        message: 'Delete failed',
+        description: 'Delete failed, please check network connection and try again',
         placement: 'topRight',
       });
     } finally {
@@ -185,13 +185,13 @@ export default function ResourcesPage() {
   const getTypeLabel = (type: string) => {
     switch (type) {
       case 'pdf':
-        return 'PDF文档';
+        return 'PDF Document';
       case 'md':
-        return 'Markdown文件';
+        return 'Markdown File';
       case 'text':
-        return '文本文件';
+        return 'Text File';
       default:
-        return '未知类型';
+        return 'Unknown Type';
     }
   };
 
@@ -200,9 +200,9 @@ export default function ResourcesPage() {
       {/* Header */}
       <Header className="bg-white border-b border-gray-200 px-6 flex items-center justify-between">
         <div>
-          <Title level={2} className="mb-0 text-gray-900">资源管理</Title>
+          <Title level={2} className="mb-0 text-gray-900">Resource Management</Title>
           <Text type="secondary" className="text-sm">
-            管理和上传您的文档资源
+            Manage and upload your document resources
           </Text>
         </div>
         <Space>
@@ -211,13 +211,13 @@ export default function ResourcesPage() {
             icon={<UploadOutlined />}
             onClick={() => setShowUploadModal(true)}
           >
-            上传文件
+            Upload File
           </Button>
           <Button
             icon={<HomeOutlined />}
             onClick={() => navigate('/')}
           >
-            返回主页
+            Return to Home
           </Button>
         </Space>
       </Header>
@@ -226,7 +226,7 @@ export default function ResourcesPage() {
         {/* Search Bar */}
         <div className="mb-6">
           <Input
-            placeholder="搜索资源..."
+            placeholder="Search resources..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             prefix={<SearchOutlined />}
@@ -246,11 +246,11 @@ export default function ResourcesPage() {
             description={
               <div>
                 <Text strong>
-                  {searchQuery ? '未找到匹配的资源' : '暂无资源'}
+                  {searchQuery ? 'No matching resources found' : 'No resources yet'}
                 </Text>
                 <br />
                 <Text type="secondary">
-                  {searchQuery ? '试试其他搜索词' : '点击上传文件按钮开始添加资源'}
+                  {searchQuery ? 'Try different search terms' : 'Click the Upload File button to start adding resources'}
                 </Text>
               </div>
             }
@@ -273,7 +273,7 @@ export default function ResourcesPage() {
                         handleDeleteClick(resource.id);
                       }}
                     >
-                      删除
+                      Delete
                     </Button>
                   ]}
                 >
@@ -296,13 +296,13 @@ export default function ResourcesPage() {
                   
                   <div className="mt-4">
                     <Descriptions size="small" column={1}>
-                      <Descriptions.Item label="文件名">
+                      <Descriptions.Item label="File Name">
                         <Text code className="text-xs">{resource.file_name}</Text>
                       </Descriptions.Item>
-                      <Descriptions.Item label="大小">
+                      <Descriptions.Item label="Size">
                         {formatFileSize(resource.file_size)}
                       </Descriptions.Item>
-                      <Descriptions.Item label="创建时间">
+                      <Descriptions.Item label="Created Time">
                         {new Date(resource.created_at).toLocaleDateString()}
                       </Descriptions.Item>
                     </Descriptions>
@@ -330,41 +330,41 @@ export default function ResourcesPage() {
           setSelectedFile(null);
         }}
         onSubmit={handleFileUpload}
-        title="上传文件"
-        submitText="上传"
-        cancelText="取消"
+        title="Upload File"
+        submitText="Upload"
+        cancelText="Cancel"
         isSubmitting={uploading}
         canSubmit={!!(selectedFile && uploadTitle.trim())}
       >
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            标题 *
+            Title *
           </label>
           <input
             type="text"
             value={uploadTitle}
             onChange={(e) => setUploadTitle(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="输入资源标题"
+            placeholder="Enter resource title"
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            描述
+            Description
           </label>
           <textarea
             value={uploadDescription}
             onChange={(e) => setUploadDescription(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             rows={3}
-            placeholder="输入资源描述（可选）"
+            placeholder="Enter resource description (optional)"
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            文件 *
+            File *
           </label>
           <input
             type="file"
@@ -373,7 +373,7 @@ export default function ResourcesPage() {
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
           <p className="text-xs text-gray-500 mt-1">
-            支持的文件类型: PDF, Markdown (.md), 文本文件 (.txt)
+            Supported file types: PDF, Markdown (.md), Text file (.txt)
           </p>
         </div>
       </FormModal>
@@ -383,10 +383,10 @@ export default function ResourcesPage() {
         isOpen={showDeleteModal}
         onClose={handleCancelDelete}
         onConfirm={handleConfirmDelete}
-        title="确认删除"
-        message="确定要删除这个资源吗？此操作无法撤销。"
-        confirmText="确认删除"
-        cancelText="取消"
+        title="Confirm Delete"
+        message="Are you sure you want to delete this resource? This operation cannot be undone."
+        confirmText="Confirm Delete"
+        cancelText="Cancel"
         confirmButtonClass="bg-red-600 hover:bg-red-700"
         isLoading={deleting}
       />

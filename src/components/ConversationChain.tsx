@@ -14,7 +14,7 @@ interface ConversationChainProps {
   onResourceRemove?: (nodeId: string, resourceId: string) => void;
   onBubbleClick?: (nodeId: string) => void;
   onContentChange?: (nodeId: string, content: string) => void;
-  // 保留Agent相关props用于显示选中的Agent
+  // Keep Agent related props for displaying selected Agent
   selectedAgent: Agent | null;
   onExecute: () => void;
   canExecute: boolean;
@@ -35,14 +35,12 @@ export default function ConversationChain({
 }: ConversationChainProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // 自动滚动到最新内容
+  // Auto scroll to latest content
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [nodes]);
-
-
 
   const renderNode = (node: ConversationNode, index: number) => {
     if (node.type === 'input' || node.type === 'output') {
@@ -61,7 +59,7 @@ export default function ConversationChain({
               : undefined
           }
           className="shadow-sm hover:shadow-md transition-shadow duration-200"
-          // Agent相关props - 只在当前输入时传递
+          // Agent related props - only pass when current input
           selectedAgent={node.isCurrentInput ? selectedAgent : undefined}
           onExecute={node.isCurrentInput ? onExecute : undefined}
           canExecute={node.isCurrentInput ? canExecute : undefined}
@@ -89,30 +87,28 @@ export default function ConversationChain({
       className="h-full overflow-y-auto overflow-x-hidden"
       style={{ 
         scrollBehavior: 'smooth',
-        maxHeight: 'calc(100vh - 80px)' // 减去header高度
+        maxHeight: 'calc(100vh - 80px)' // Subtract header height
       }}
     >
       <div className="min-h-full px-6 py-4">
         <div className="max-w-4xl mx-auto space-y-6">
-          {/* 对话节点 - 瀑布流式布局 */}
+          {/* Conversation nodes - waterfall layout */}
           {nodes.length > 0 ? (
             <div className="space-y-4">
               {nodes.map((node, index) => renderNode(node, index))}
             </div>
           ) : (
-            /* 空状态提示 */
+            /* Empty state prompt */
             <div className="flex items-center justify-center py-12">
               <div className="text-center text-gray-500">
-                <Text className="text-lg">开始你的第一轮对话</Text>
+                <Text className="text-lg">Start your first conversation</Text>
                 <br />
-                <Text type="secondary">选择左侧资源和右侧Agent开始对话</Text>
+                <Text type="secondary">Select resources on the left and Agent on the right to start conversation</Text>
               </div>
             </div>
           )}
           
-
-          
-          {/* 底部间距，确保最后一个元素不会贴底 */}
+          {/* Bottom spacing to ensure last element doesn't stick to bottom */}
           <div className="h-6"></div>
         </div>
       </div>

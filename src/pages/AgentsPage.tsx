@@ -63,8 +63,8 @@ export default function AgentsPage() {
     } catch (error) {
       console.error('Error fetching agents:', error);
       notification.error({
-        message: '获取代理失败',
-        description: '无法获取代理列表',
+        message: 'Failed to fetch agents',
+        description: 'Unable to get agent list',
         placement: 'topRight',
       });
     }
@@ -83,8 +83,8 @@ export default function AgentsPage() {
     } catch (error) {
       console.error('Error fetching config:', error);
       notification.error({
-        message: '获取配置失败',
-        description: '无法获取OpenAI配置',
+        message: 'Failed to fetch configuration',
+        description: 'Unable to get OpenAI configuration',
         placement: 'topRight',
       });
     } finally {
@@ -97,24 +97,24 @@ export default function AgentsPage() {
       setSubmitting(true);
       
       if (editingAgent) {
-        // 更新现有代理
+        // Update existing agent
         await apiService.updateAgent(editingAgent.id, formData);
       } else {
-        // 创建新代理
+        // Create new agent
         await apiService.createAgent(formData);
       }
       
       await fetchAgents();
       notification.success({
-        message: editingAgent ? 'Agent 更新成功' : 'Agent 创建成功',
-        description: editingAgent ? 'Agent 已成功更新' : '新的 Agent 已成功创建',
+        message: editingAgent ? 'Agent updated successfully' : 'Agent created successfully',
+        description: editingAgent ? 'Agent has been successfully updated' : 'New Agent has been successfully created',
         placement: 'topRight',
       });
       resetForm();
     } catch (error) {
       console.error('Error saving agent:', error);
       notification.error({
-        message: '操作失败',
+        message: 'Operation failed',
         description: 'Failed to save agent',
         placement: 'topRight',
       });
@@ -153,14 +153,14 @@ export default function AgentsPage() {
 
       await fetchAgents();
       notification.success({
-        message: '删除成功',
-        description: 'Agent 删除成功！',
+        message: 'Deleted successfully',
+        description: 'Agent deleted successfully!',
         placement: 'topRight',
       });
     } catch (error) {
       console.error('Error deleting agent:', error);
       notification.error({
-        message: '删除失败',
+        message: 'Delete failed',
         description: 'Failed to delete agent',
         placement: 'topRight',
       });
@@ -392,10 +392,10 @@ export default function AgentsPage() {
           isOpen={showDeleteModal}
           onClose={handleCancelDelete}
           onConfirm={handleConfirmDelete}
-          title="确认删除"
-          message="确定要删除这个Agent吗？此操作无法撤销。"
-          confirmText="确认删除"
-          cancelText="取消"
+          title="Confirm Delete"
+          message="Are you sure you want to delete this Agent? This action cannot be undone."
+          confirmText="Confirm Delete"
+          cancelText="Cancel"
           confirmButtonClass="bg-red-600 hover:bg-red-700"
           isLoading={deleting}
         />

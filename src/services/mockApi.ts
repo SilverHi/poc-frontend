@@ -1,58 +1,62 @@
 import { StoredResource } from '@/types';
 
-// Mock 数据
+// Mock data
 const mockStoredResources: StoredResource[] = [
   {
     id: '1',
-    title: '产品需求文档模板',
-    description: '标准的产品需求文档模板，包含功能需求、非功能需求等',
-    type: 'md',
-    parsedContent: `# 产品需求文档模板
+    title: 'Product Requirements Document Template',
+    description: 'Standard product requirements document template, including functional requirements, non-functional requirements, etc.',
+    file_name: 'product-requirements-template.md',
+    file_size: 2048,
+    file_type: 'md',
+    parsed_content: `# Product Requirements Document Template
 
-## 1. 产品概述
-- 产品名称
-- 产品定位
-- 目标用户
+## 1. Product Overview
+- Product Name
+- Product Positioning
+- Target Users
 
-## 2. 功能需求
-- 核心功能
-- 辅助功能
-- 扩展功能
+## 2. Functional Requirements
+- Core Functions
+- Auxiliary Functions
+- Extended Functions
 
-## 3. 非功能需求
-- 性能要求
-- 安全要求
-- 可用性要求`,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z'
+## 3. Non-functional Requirements
+- Performance Requirements
+- Security Requirements
+- Usability Requirements`,
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z'
   },
   {
     id: '2',
-    title: '用户故事模板',
-    description: '敏捷开发中的用户故事编写模板',
-    type: 'text',
-    parsedContent: `作为一个 [用户角色]
-我希望 [功能描述]
-以便于 [价值/目标]
+    title: 'User Story Template',
+    description: 'User story writing template in agile development',
+    file_name: 'user-story-template.txt',
+    file_size: 512,
+    file_type: 'text',
+    parsed_content: `As a [user role]
+I want [feature description]
+So that [value/goal]
 
-验收标准：
-- [ ] 标准1
-- [ ] 标准2
-- [ ] 标准3`,
-    createdAt: '2024-01-02T00:00:00Z',
-    updatedAt: '2024-01-02T00:00:00Z'
+Acceptance Criteria:
+- [ ] Criterion 1
+- [ ] Criterion 2
+- [ ] Criterion 3`,
+    created_at: '2024-01-02T00:00:00Z',
+    updated_at: '2024-01-02T00:00:00Z'
   }
 ];
 
 const mockCustomAgents = [
   {
     id: 'custom-1',
-    name: '需求分析师',
-    description: '专门分析和整理产品需求的AI助手',
+    name: 'Requirements Analyst',
+    description: 'AI assistant specialized in analyzing and organizing product requirements',
     icon: '📋',
     category: 'analysis',
     color: '#1890ff',
-    systemPrompt: '你是一个专业的需求分析师...',
+    systemPrompt: 'You are a professional requirements analyst...',
     model: 'gpt-3.5-turbo',
     temperature: 0.7,
     maxTokens: 2000,
@@ -61,34 +65,34 @@ const mockCustomAgents = [
   }
 ];
 
-// 模拟 API 延迟
+// Simulate API delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const mockApiService = {
-  // 获取资源列表
+  // Get resource list
   async getResources(): Promise<StoredResource[]> {
     await delay(500);
     return mockStoredResources;
   },
 
-  // 获取自定义代理列表
+  // Get custom agent list
   async getAgents() {
     await delay(300);
     return mockCustomAgents;
   },
 
-  // 执行自定义代理
+  // Execute custom agent
   async executeAgent(agentId: string, input: string): Promise<{ output: string; logs: string[] }> {
     await delay(2000);
     
     const logs = [
-      `启动代理 ${agentId}...`,
-      '分析输入内容...',
-      '应用处理逻辑...',
-      '生成输出结果...'
+      `Starting agent ${agentId}...`,
+      'Analyzing input content...',
+      'Applying processing logic...',
+      'Generating output result...'
     ];
 
-    const output = `这是代理 ${agentId} 处理的结果：\n\n基于输入内容："${input.substring(0, 100)}${input.length > 100 ? '...' : ''}"，我已经完成了分析和处理。\n\n处理结果包含了详细的分析和建议。`;
+    const output = `This is the result processed by agent ${agentId}:\n\nBased on the input content: "${input.substring(0, 100)}${input.length > 100 ? '...' : ''}", I have completed the analysis and processing.\n\nThe processing result contains detailed analysis and recommendations.`;
 
     return { output, logs };
   }

@@ -60,7 +60,7 @@ function App() {
     fetchStoredResources();
   }, []);
 
-  // 初始化第一个输入节点
+  // Initialize first input node
   useEffect(() => {
     if (conversationNodes.length === 0) {
       const initialInputNode: ConversationNode = {
@@ -96,7 +96,7 @@ function App() {
       setCustomAgents(data);
     } catch (error) {
       console.error('Error fetching custom agents:', error);
-      message.error('获取自定义代理失败');
+      message.error('Failed to fetch custom agents');
     }
   };
 
@@ -106,7 +106,7 @@ function App() {
       setStoredResources(data);
     } catch (error) {
       console.error('Error fetching stored resources:', error);
-      message.error('获取资源失败');
+      message.error('Failed to fetch resources');
     }
   };
 
@@ -117,7 +117,7 @@ function App() {
         ? prev.filter(r => r.id !== resource.id)
         : [...prev, resource];
       
-      // 同时更新当前输入节点的资源
+      // Update current input node resources simultaneously
       setConversationNodes(prevNodes => prevNodes.map(node => 
         node.isCurrentInput 
           ? { ...node, resources: newResources }
@@ -134,7 +134,7 @@ function App() {
   };
 
   const getInputContent = () => {
-    // 优先从当前输入节点获取内容
+    // Get content from current input node first
     const currentInputNode = conversationNodes.find(node => node.isCurrentInput);
     let content = currentInputNode ? currentInputNode.content : userInput;
     const resources = currentInputNode ? (currentInputNode.resources || []) : selectedResources;
@@ -147,7 +147,7 @@ function App() {
   };
 
   const canExecute = () => {
-    // 检查是否有当前输入节点或者有用户输入
+    // Check if there is current input node or user input
     const currentInputNode = conversationNodes.find(node => node.isCurrentInput);
     const hasContent = currentInputNode ? 
       (currentInputNode.content.trim() || (currentInputNode.resources && currentInputNode.resources.length > 0)) :
@@ -171,11 +171,11 @@ function App() {
     setIsExecuting(true);
     setExecutionLogs([]);
     
-    // 获取当前输入节点的内容
+    // Get current input node content
     const currentInputNode = conversationNodes.find(node => node.isCurrentInput);
     const inputContent = currentInputNode ? getInputContent() : userInput;
     
-    // 如果没有当前输入节点，创建第一个输入节点
+    // If no current input node, create the first input node
     if (!currentInputNode) {
       const firstInputNode: ConversationNode = {
         id: `input-${Date.now()}`,
@@ -183,12 +183,12 @@ function App() {
         content: userInput,
         resources: [...selectedResources],
         timestamp: new Date(),
-        isCurrentInput: false, // 执行后变为历史记录
+        isCurrentInput: false, // Becomes history after execution
         isEditable: false
       };
       setConversationNodes(prev => [...prev, firstInputNode]);
     } else {
-      // 将当前输入节点标记为历史记录
+      // Mark current input node as history
       setConversationNodes(prev => prev.map(node => 
         node.isCurrentInput 
           ? { ...node, isCurrentInput: false, isEditable: false }
@@ -200,7 +200,7 @@ function App() {
     const bubbleNode: ConversationNode = {
       id: `bubble-${Date.now()}`,
       type: 'bubble',
-      content: `正在使用 ${selectedAgent.name} 处理...`,
+      content: `Using ${selectedAgent.name} to process...`,
       agent: selectedAgent,
       status: 'running',
       logs: [],
@@ -214,10 +214,10 @@ function App() {
     try {
       // Simulate log updates during execution
       const logs = [
-        `启动 ${currentAgent.name}...`,
-        '分析输入内容...',
-        '应用处理逻辑...',
-        '生成输出结果...'
+        `Starting ${currentAgent.name}...`,
+        'Analyzing input content...',
+        'Applying processing logic...',
+        'Generating output result...'
       ];
       
       for (let i = 0; i < logs.length; i++) {
@@ -246,7 +246,7 @@ function App() {
       // Update bubble node to completed
       setConversationNodes(prev => prev.map(node => 
         node.id === bubbleNode.id 
-          ? { ...node, status: 'completed', content: '处理完成', logs: result.logs }
+          ? { ...node, status: 'completed', content: 'Processing completed', logs: result.logs }
           : node
       ));
 
@@ -258,13 +258,13 @@ function App() {
         agent: currentAgent,
         status: 'completed',
         timestamp: new Date(),
-        isCurrentInput: true, // 输出节点成为新的当前输入
+        isCurrentInput: true, // Output node becomes new current input
         isEditable: true
       };
       
       setConversationNodes(prev => [...prev, outputNode]);
 
-      // 更新userInput为输出内容，为下一轮做准备
+      // Update userInput to output content, prepare for next round
       setUserInput(result.output);
       setSelectedResources([]);
       
@@ -275,7 +275,7 @@ function App() {
           ? { 
               ...node, 
               status: 'error', 
-              content: `错误: ${error instanceof Error ? error.message : '未知错误'}`
+              content: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
             }
           : node
       ));
@@ -286,7 +286,7 @@ function App() {
   };
 
   const clearConversation = () => {
-    // 创建一个新的初始输入节点
+    // Create a new initial input node
     const initialInputNode: ConversationNode = {
       id: `input-initial-${Date.now()}`,
       type: 'input',
@@ -313,7 +313,7 @@ function App() {
   };
 
   const handleBubbleClick = (nodeId: string) => {
-    // 可以在这里实现点击气泡的逻辑，比如展开详细信息
+    // Can implement bubble click logic here, such as expanding detailed information
     console.log('Clicked bubble:', nodeId);
   };
 
@@ -323,17 +323,17 @@ function App() {
         ? { ...node, content }
         : node
     ));
-    // 同时更新userInput状态，保持同步
+    // Update userInput state simultaneously to keep in sync
     setUserInput(content);
   };
 
   const handleAgentBuilderClick = () => {
-    console.log('Agent Builder 按钮被点击了');
+    console.log('Agent Builder button clicked');
     navigate('/agents');
   };
 
   const handleResourceManageClick = () => {
-    console.log('资源管理按钮被点击了');
+    console.log('Resource management button clicked');
     navigate('/resources');
   };
 
@@ -360,7 +360,7 @@ function App() {
             icon={<ClearOutlined />}
             onClick={clearConversation}
           >
-            清空对话
+            Clear Chat
           </Button>
         </Space>
       </Header>
@@ -377,7 +377,7 @@ function App() {
                 icon={<UploadOutlined />}
                 onClick={handleResourceManageClick}
               >
-                管理
+                Manage
               </Button>
             </Space>
             <Text type="secondary" className="text-sm">
@@ -388,7 +388,7 @@ function App() {
           {/* Search Box */}
           <div className="p-4 border-b border-gray-200">
             <Input
-              placeholder="搜索资源..."
+              placeholder="Search resources..."
               value={resourceSearchQuery}
               onChange={(e) => setResourceSearchQuery(e.target.value)}
               prefix={<SearchOutlined />}
@@ -403,11 +403,11 @@ function App() {
                 description={
                   <div>
                     <Text type="secondary">
-                      {resourceSearchQuery ? '未找到匹配的资源' : '暂无资源'}
+                      {resourceSearchQuery ? 'No matching resources found' : 'No resources available'}
                     </Text>
                     <br />
                     <Text type="secondary" className="text-xs">
-                      {resourceSearchQuery ? '试试其他搜索词' : '点击管理按钮上传文档'}
+                      {resourceSearchQuery ? 'Try different search terms' : 'Click manage button to upload documents'}
                     </Text>
                   </div>
                 }
@@ -438,7 +438,7 @@ function App() {
 
         {/* Center - Main Workspace */}
         <Content className="flex flex-col bg-gray-50">
-          {/* 完整的对话链滑动窗口 */}
+          {/* Complete conversation chain sliding window */}
           <div className="flex-1 h-full">
             <ConversationChain
               nodes={conversationNodes}

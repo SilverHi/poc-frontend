@@ -1,8 +1,8 @@
-import { StoredResource } from '@/types';
+import { StoredResource, CustomAgent } from '@/types';
 
 const API_BASE_URL = 'http://localhost:8000/api/v1';
 
-// API 客户端类
+// API client class
 class ApiClient {
   private baseURL: string;
 
@@ -39,8 +39,8 @@ class ApiClient {
     }
   }
 
-  // Agent 相关 API
-  async getAgents() {
+  // Agent related APIs
+  async getAgents(): Promise<CustomAgent[]> {
     return this.request('/agents');
   }
 
@@ -78,16 +78,21 @@ class ApiClient {
     });
   }
 
-  // Resource 相关 API
+  // Resource related APIs
   async getResources(): Promise<StoredResource[]> {
     return this.request('/resources');
   }
 
-  async uploadResource(formData: FormData): Promise<any> {
-    return this.request('/resources/upload', {
+  async uploadResource(file: File, title: string, description: string = ''): Promise<void> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('title', title);
+    formData.append('description', description);
+
+    await this.request('/resources/upload', {
       method: 'POST',
-      headers: {}, // 让浏览器自动设置 Content-Type for FormData
       body: formData,
+      headers: {}, // Let browser automatically set Content-Type for FormData
     });
   }
 
@@ -104,87 +109,81 @@ class ApiClient {
     });
   }
 
-  // Config 相关 API
-  async getOpenAIConfig() {
+  // Config related APIs
+  async getOpenAIConfig(): Promise<any> {
     return this.request('/config/openai');
   }
 
-  async updateOpenAIConfig(configData: any) {
+  async updateOpenAIConfig(config: any) {
     return this.request('/config/openai', {
       method: 'POST',
-      body: JSON.stringify(configData),
+      body: JSON.stringify(config),
     });
   }
 }
 
-// 创建 API 客户端实例
-export const apiClient = new ApiClient(API_BASE_URL);
+// Create API client instance
+const apiClient = new ApiClient(API_BASE_URL);
 
-// 导出 API 服务
+// Export API service
 export const apiService = {
-  // 获取资源列表
-  async getResources(): Promise<StoredResource[]> {
+  // Get resource list
+  async getResources() {
     return apiClient.getResources();
   },
 
-  // 获取自定义代理列表
+  // Get custom agent list
   async getAgents() {
     return apiClient.getAgents();
   },
 
-  // 执行自定义代理
-  async executeAgent(agentId: string, input: string): Promise<{ output: string; logs: string[] }> {
+  // Execute custom agent
+  async executeAgent(agentId: string, input: string) {
     return apiClient.executeAgent(agentId, input);
   },
 
-  // 创建代理
+  // Create agent
   async createAgent(agentData: any) {
     return apiClient.createAgent(agentData);
   },
 
-  // 更新代理
+  // Update agent
   async updateAgent(agentId: string, agentData: any) {
     return apiClient.updateAgent(agentId, agentData);
   },
 
-  // 删除代理
+  // Delete agent
   async deleteAgent(agentId: string) {
     return apiClient.deleteAgent(agentId);
   },
 
-  // 优化提示词
-  async optimizePrompt(prompt: string): Promise<{ optimized_prompt: string; logs: string[] }> {
+  // Optimize prompt
+  async optimizePrompt(prompt: string) {
     return apiClient.optimizePrompt(prompt);
   },
 
-  // 上传资源
-  async uploadResource(file: File, title: string, description?: string) {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('title', title);
-    if (description) {
-      formData.append('description', description);
-    }
-    return apiClient.uploadResource(formData);
+  // Upload resource
+  async uploadResource(file: File, title: string, description: string = '') {
+    return apiClient.uploadResource(file, title, description);
   },
 
-  // 删除资源
+  // Delete resource
   async deleteResource(resourceId: string) {
     return apiClient.deleteResource(resourceId);
   },
 
-  // 更新资源
+  // Update resource
   async updateResource(resourceId: string, resourceData: any) {
     return apiClient.updateResource(resourceId, resourceData);
   },
 
-  // 获取OpenAI配置
+  // Get OpenAI configuration
   async getOpenAIConfig() {
     return apiClient.getOpenAIConfig();
   },
 
-  // 更新OpenAI配置
-  async updateOpenAIConfig(configData: any) {
-    return apiClient.updateOpenAIConfig(configData);
-  },
+  // Update OpenAI configuration
+  async updateOpenAIConfig(config: any) {
+    return apiClient.updateOpenAIConfig(config);
+  }
 }; 

@@ -43,11 +43,11 @@ export default function BubbleMessage({ node, onClick }: BubbleMessageProps) {
     <Tooltip 
       title={
         <div>
-          <div className="font-medium">{node.agent?.name || '处理步骤'}</div>
+          <div className="font-medium">{node.agent?.name || 'Processing Step'}</div>
           <div className="mt-1">{node.content}</div>
           {node.logs && node.logs.length > 0 && (
             <div className="mt-2 text-xs opacity-80">
-              最新日志: {node.logs[node.logs.length - 1]}
+              Latest log: {node.logs[node.logs.length - 1]}
             </div>
           )}
         </div>

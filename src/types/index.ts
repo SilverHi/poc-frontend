@@ -15,7 +15,7 @@ export interface Agent {
   color: string;
 }
 
-// 扩展的Agent类型，包含后端返回的完整信息
+// Extended Agent type, including complete information returned from backend
 export interface CustomAgent {
   id: string;
   name: string;
@@ -48,7 +48,7 @@ export interface Workflow {
   updatedAt: Date;
 }
 
-// 新增对话链相关类型
+// New conversation chain related types
 export interface ConversationNode {
   id: string;
   type: 'input' | 'output' | 'bubble';

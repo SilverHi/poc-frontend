@@ -47,15 +47,15 @@ export default function AgentSelectionCard({
           loading={isExecuting}
           size="large"
         >
-          {isExecuting ? '执行中...' : '执行'}
+          {isExecuting ? 'Executing...' : 'Execute'}
         </Button>
       </Space>
 
-      {/* 执行日志 */}
+      {/* Execution logs */}
       {isExecuting && logs.length > 0 && (
         <div className="mt-4 pt-4 border-t border-blue-300">
           <Text strong className="text-sm text-gray-700 mb-2 block">
-            执行日志
+            Execution Logs
           </Text>
           <div className="bg-black text-green-400 font-mono text-xs p-3 rounded max-h-32 overflow-y-auto">
             {logs.map((log, index) => (

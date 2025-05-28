@@ -12,7 +12,7 @@ interface ConversationCardProps {
   onResourceRemove?: (resourceId: string) => void;
   onContentChange?: (content: string) => void;
   className?: string;
-  // Agent相关props - 只在当前输入时需要
+  // Agent related props - only needed for current input
   selectedAgent?: Agent | null;
   onExecute?: () => void;
   canExecute?: boolean;
@@ -36,34 +36,34 @@ export default function ConversationCard({
   const isCurrentInput = node.isCurrentInput || false;
   const isEditable = node.isEditable || false;
 
-  // 确定卡片样式
+  // Determine card style
   const getCardStyle = () => {
     if (isCurrentInput) {
-      return 'bg-blue-50 border-blue-200 border-2'; // 当前输入：蓝色边框加粗
+      return 'bg-blue-50 border-blue-200 border-2'; // Current input: blue border bold
     } else if (isOutput) {
-      return 'bg-green-50 border-green-200'; // 输出：绿色背景
+      return 'bg-green-50 border-green-200'; // Output: green background
     } else {
-      return 'bg-gray-50 border-gray-200'; // 历史输入：灰色背景
+      return 'bg-gray-50 border-gray-200'; // Historical input: gray background
     }
   };
 
-  // 确定标题
+  // Determine title
   const getTitle = () => {
     if (isCurrentInput) {
-      return '当前输入';
+      return 'Current Input';
     } else if (isOutput) {
-      return '输出结果';
+      return 'Output Result';
     } else {
-      return '历史输入';
+      return 'Historical Input';
     }
   };
 
   return (
     <Card 
       className={`w-full ${className || ''} ${getCardStyle()}`}
-      style={{ height: '33vh' }} // 固定高度
+      style={{ height: '33vh' }} // Fixed height
     >
-      {/* 卡片头部 - 固定高度 */}
+      {/* Card header - fixed height */}
       <div className="mb-3 flex-shrink-0">
         <Space align="center" className="w-full justify-between">
           <Space align="center">
@@ -87,7 +87,7 @@ export default function ConversationCard({
                 <div className="text-sm text-gray-600">{node.agent.name}</div>
               )}
               {isCurrentInput && (
-                <div className="text-xs text-blue-600">可编辑</div>
+                <div className="text-xs text-blue-600">Editable</div>
               )}
             </div>
           </Space>
@@ -97,31 +97,31 @@ export default function ConversationCard({
         </Space>
       </div>
 
-      {/* 内容区域 - 可滚动 */}
+      {/* Content area - scrollable */}
       <div className="flex-1 overflow-hidden flex flex-col" style={{ height: 'calc(33vh - 120px)' }}>
         <div className="flex-1 overflow-y-auto mb-3">
           {isEditable && isCurrentInput ? (
-            // 可编辑状态：显示TextArea
+            // Editable state: show TextArea
             <TextArea
               value={node.content}
               onChange={(e) => onContentChange?.(e.target.value)}
-              placeholder="请输入您的需求描述、问题或待处理的内容..."
+              placeholder="Please enter your requirement description, questions or content to be processed..."
               className="resize-none h-full border-none"
               style={{ height: '100%', backgroundColor: 'transparent' }}
             />
           ) : (
-            // 只读状态：显示文本
+            // Read-only state: show text
             <Paragraph className="text-base whitespace-pre-wrap mb-0">
-              {node.content || '请输入内容...'}
+              {node.content || 'Please enter content...'}
             </Paragraph>
           )}
         </div>
 
-        {/* 资源标签 - 固定在底部 */}
+        {/* Resource tags - fixed at bottom */}
         {node.resources && node.resources.length > 0 && (
           <div className="flex-shrink-0 border-t border-gray-200 pt-3">
             <Text strong className="text-sm text-gray-700 mb-2 block">
-              引用资源 ({node.resources.length})
+              Referenced Resources ({node.resources.length})
             </Text>
             <div className="max-h-16 overflow-y-auto">
               <Space wrap>
@@ -141,7 +141,7 @@ export default function ConversationCard({
           </div>
         )}
 
-        {/* Agent选择区域 - 只在当前输入时显示 */}
+        {/* Agent selection area - only show for current input */}
         {isCurrentInput && selectedAgent && (
           <div className="flex-shrink-0 border-t border-gray-200 pt-3 mt-2">
             <AgentSelectionCard
@@ -154,12 +154,12 @@ export default function ConversationCard({
           </div>
         )}
 
-        {/* 状态指示器 */}
+        {/* Status indicator */}
         {node.status && node.status !== 'completed' && (
           <div className="flex-shrink-0 border-t border-gray-200 pt-2 mt-2">
             <Space>
               <Text type="secondary" className="text-sm">
-                状态: {node.status === 'running' ? '执行中...' : node.status === 'error' ? '执行失败' : '等待中'}
+                Status: {node.status === 'running' ? 'Executing...' : node.status === 'error' ? 'Execution failed' : 'Waiting'}
               </Text>
             </Space>
           </div>

@@ -38,7 +38,7 @@ interface FormModalProps {
   size?: 'sm' | 'md' | 'lg';
 }
 
-// 基础Modal组件
+// Base Modal component
 export function Modal({ 
   isOpen, 
   onClose, 
@@ -70,15 +70,15 @@ export function Modal({
   );
 }
 
-// 确认弹窗组件
+// Confirmation modal component
 export function ConfirmModal({
   isOpen,
   onClose,
   onConfirm,
   title,
   message,
-  confirmText = '确认',
-  cancelText = '取消',
+  confirmText = 'Confirm',
+  cancelText = 'Cancel',
   confirmButtonClass,
   isLoading = false
 }: ConfirmModalProps) {
@@ -114,15 +114,15 @@ export function ConfirmModal({
   );
 }
 
-// 表单弹窗组件
+// Form modal component
 export function FormModal({
   isOpen,
   onClose,
   onSubmit,
   title,
   children,
-  submitText = '提交',
-  cancelText = '取消',
+  submitText = 'Submit',
+  cancelText = 'Cancel',
   isSubmitting = false,
   canSubmit = true,
   size = 'md'
