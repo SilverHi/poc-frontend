@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { InputResource, Agent, ConversationNode } from '@/types';
+import { InputResource, Agent, ConversationNode, CustomAgent } from '@/types';
 import { mockAgents, executeAgent } from '@/data/mockData';
 import { StoredResource } from '@/lib/database';
 import InputResourceCard from '@/components/InputResourceCard';
 import AgentCard from '@/components/AgentCard';
 import ConversationChain from '@/components/ConversationChain';
-import { mockApiService } from '@/services/mockApi';
+import { apiService } from '@/services/api';
 import { 
   Layout, 
   Typography, 
@@ -31,21 +31,6 @@ import {
 const { Header, Content, Sider } = Layout;
 const { Title, Text } = Typography;
 const { TextArea } = Input;
-
-interface CustomAgent {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  category: string;
-  color: string;
-  systemPrompt: string;
-  model: string;
-  temperature: number;
-  maxTokens: number;
-  createdAt: string;
-  updatedAt: string;
-}
 
 function App() {
   const [selectedResources, setSelectedResources] = useState<InputResource[]>([]);
@@ -97,7 +82,7 @@ function App() {
       const filtered = storedResources.filter(resource =>
         resource.title.toLowerCase().includes(resourceSearchQuery.toLowerCase()) ||
         resource.description.toLowerCase().includes(resourceSearchQuery.toLowerCase()) ||
-        resource.parsedContent.toLowerCase().includes(resourceSearchQuery.toLowerCase())
+        resource.parsed_content.toLowerCase().includes(resourceSearchQuery.toLowerCase())
       );
       setFilteredStoredResources(filtered);
     } else {
@@ -107,7 +92,7 @@ function App() {
 
   const fetchCustomAgents = async () => {
     try {
-      const data = await mockApiService.getAgents();
+      const data = await apiService.getAgents() as CustomAgent[];
       setCustomAgents(data);
     } catch (error) {
       console.error('Error fetching custom agents:', error);
@@ -117,7 +102,7 @@ function App() {
 
   const fetchStoredResources = async () => {
     try {
-      const data = await mockApiService.getResources();
+      const data = await apiService.getResources();
       setStoredResources(data);
     } catch (error) {
       console.error('Error fetching stored resources:', error);
@@ -173,7 +158,7 @@ function App() {
 
   const executeCustomAgent = async (agentId: string, input: string): Promise<{ output: string; logs: string[] }> => {
     try {
-      return await mockApiService.executeAgent(agentId, input);
+      return await apiService.executeAgent(agentId, input);
     } catch (error) {
       console.error('Error executing custom agent:', error);
       throw error;
@@ -433,8 +418,8 @@ function App() {
                   const inputResource: InputResource = {
                     id: resource.id,
                     title: resource.title,
-                    type: resource.type === 'pdf' ? 'pdf' : resource.type === 'md' ? 'md' : 'text',
-                    content: resource.parsedContent,
+                    type: resource.file_type === 'pdf' ? 'pdf' : resource.file_type === 'md' ? 'md' : 'text',
+                    content: resource.parsed_content,
                     description: resource.description
                   };
                   return (

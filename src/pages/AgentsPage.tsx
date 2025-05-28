@@ -2,34 +2,21 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ConfirmModal, FormModal } from '../components/Modal';
 import { notification } from 'antd';
-
-interface CustomAgent {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  category: string;
-  color: string;
-  systemPrompt: string;
-  model: string;
-  temperature: number;
-  maxTokens: number;
-  createdAt: string;
-  updatedAt: string;
-}
+import { apiService } from '../services/api';
+import { CustomAgent } from '../types';
 
 interface OpenAIConfig {
   models: Array<{
     id: string;
     name: string;
-    maxTokens: number;
+    max_tokens: number;
     description: string;
   }>;
-  defaultModel: string;
-  defaultTemperature: number;
-  defaultMaxTokens: number;
-  isConfigured: boolean;
-  hasApiKey: boolean;
+  default_model: string;
+  default_temperature: number;
+  default_max_tokens: number;
+  is_configured: boolean;
+  has_api_key: boolean;
 }
 
 const categories = [
@@ -58,10 +45,10 @@ export default function AgentsPage() {
     icon: '📝',
     category: 'analysis',
     color: 'bg-purple-500',
-    systemPrompt: '',
+    system_prompt: '',
     model: '',
     temperature: 0.7,
-    maxTokens: 1000,
+    max_tokens: 1000,
   });
 
   useEffect(() => {
@@ -71,37 +58,35 @@ export default function AgentsPage() {
 
   const fetchAgents = async () => {
     try {
-      // Mock API call - 替换为实际的API调用
-      const mockAgents: CustomAgent[] = [];
-      setAgents(mockAgents);
+      const data = await apiService.getAgents() as CustomAgent[];
+      setAgents(data);
     } catch (error) {
       console.error('Error fetching agents:', error);
+      notification.error({
+        message: '获取代理失败',
+        description: '无法获取代理列表',
+        placement: 'topRight',
+      });
     }
   };
 
   const fetchConfig = async () => {
     try {
-      // Mock config - 替换为实际的API调用
-      const mockConfig: OpenAIConfig = {
-        models: [
-          { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', maxTokens: 4000, description: 'Fast and efficient' },
-          { id: 'gpt-4', name: 'GPT-4', maxTokens: 8000, description: 'Most capable model' }
-        ],
-        defaultModel: 'gpt-3.5-turbo',
-        defaultTemperature: 0.7,
-        defaultMaxTokens: 1000,
-        isConfigured: true,
-        hasApiKey: true
-      };
-      setConfig(mockConfig);
-      if (mockConfig.models.length > 0) {
+      const data = await apiService.getOpenAIConfig() as OpenAIConfig;
+      setConfig(data);
+      if (data.models.length > 0) {
         setFormData(prev => ({
           ...prev,
-          model: mockConfig.defaultModel || mockConfig.models[0].id
+          model: data.default_model || data.models[0].id
         }));
       }
     } catch (error) {
       console.error('Error fetching config:', error);
+      notification.error({
+        message: '获取配置失败',
+        description: '无法获取OpenAI配置',
+        placement: 'topRight',
+      });
     } finally {
       setLoading(false);
     }
@@ -110,8 +95,14 @@ export default function AgentsPage() {
   const handleSubmit = async () => {
     try {
       setSubmitting(true);
-      // Mock API call - 替换为实际的API调用
-      await new Promise(resolve => setTimeout(resolve, 1000)); // 模拟API延迟
+      
+      if (editingAgent) {
+        // 更新现有代理
+        await apiService.updateAgent(editingAgent.id, formData);
+      } else {
+        // 创建新代理
+        await apiService.createAgent(formData);
+      }
       
       await fetchAgents();
       notification.success({
@@ -140,10 +131,10 @@ export default function AgentsPage() {
       icon: agent.icon,
       category: agent.category,
       color: agent.color,
-      systemPrompt: agent.systemPrompt,
+      system_prompt: agent.system_prompt,
       model: agent.model,
       temperature: agent.temperature,
-      maxTokens: agent.maxTokens,
+      max_tokens: agent.max_tokens,
     });
     setShowForm(true);
   };
@@ -158,8 +149,7 @@ export default function AgentsPage() {
 
     try {
       setDeleting(true);
-      // Mock API call - 替换为实际的API调用
-      await new Promise(resolve => setTimeout(resolve, 1000)); // 模拟API延迟
+      await apiService.deleteAgent(agentToDelete);
 
       await fetchAgents();
       notification.success({
@@ -193,10 +183,10 @@ export default function AgentsPage() {
       icon: '📝',
       category: 'analysis',
       color: 'bg-purple-500',
-      systemPrompt: '',
-      model: config?.defaultModel || '',
+      system_prompt: '',
+      model: config?.default_model || '',
       temperature: 0.7,
-      maxTokens: 1000,
+      max_tokens: 1000,
     });
     setEditingAgent(null);
     setShowForm(false);
@@ -213,7 +203,7 @@ export default function AgentsPage() {
     );
   }
 
-  if (!config?.isConfigured) {
+  if (!config?.is_configured) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="max-w-md mx-auto text-center">
@@ -269,7 +259,7 @@ export default function AgentsPage() {
           submitText={editingAgent ? 'Update Agent' : 'Create Agent'}
           cancelText="Cancel"
           isSubmitting={submitting}
-          canSubmit={!!(formData.name && formData.description && formData.systemPrompt)}
+          canSubmit={!!(formData.name && formData.description && formData.system_prompt)}
           size="lg"
         >
           <div className="grid grid-cols-2 gap-4">
@@ -348,8 +338,8 @@ export default function AgentsPage() {
             </label>
             <input
               type="text"
-              value={formData.systemPrompt}
-              onChange={(e) => setFormData(prev => ({ ...prev, systemPrompt: e.target.value }))}
+              value={formData.system_prompt}
+              onChange={(e) => setFormData(prev => ({ ...prev, system_prompt: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
             />
@@ -389,8 +379,8 @@ export default function AgentsPage() {
             </label>
             <input
               type="number"
-              value={formData.maxTokens}
-              onChange={(e) => setFormData(prev => ({ ...prev, maxTokens: Number(e.target.value) }))}
+              value={formData.max_tokens}
+              onChange={(e) => setFormData(prev => ({ ...prev, max_tokens: Number(e.target.value) }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
             />
@@ -455,7 +445,7 @@ export default function AgentsPage() {
                 </div>
                 <div className="flex justify-between">
                   <span>Max Tokens:</span>
-                  <span>{agent.maxTokens}</span>
+                  <span>{agent.max_tokens}</span>
                 </div>
               </div>
             </div>

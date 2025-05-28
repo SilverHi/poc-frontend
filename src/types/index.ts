@@ -15,6 +15,22 @@ export interface Agent {
   color: string;
 }
 
+// 扩展的Agent类型，包含后端返回的完整信息
+export interface CustomAgent {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: string;
+  color: string;
+  system_prompt: string;
+  model: string;
+  temperature: number;
+  max_tokens: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface WorkflowStep {
   id: string;
   agent: Agent;
@@ -57,10 +73,10 @@ export interface StoredResource {
   id: string;
   title: string;
   description: string;
-  fileName: string;
-  fileSize: number;
-  type: string;
-  parsedContent: string;
-  createdAt: string;
-  updatedAt: string;
+  file_name: string;
+  file_size: number;
+  file_type: string;
+  parsed_content: string;
+  created_at: string;
+  updated_at: string;
 } 

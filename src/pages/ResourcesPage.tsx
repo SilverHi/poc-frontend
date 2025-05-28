@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StoredResource } from '../lib/database';
 import { ConfirmModal, FormModal } from '../components/Modal';
+import { apiService } from '../services/api';
 import { 
   notification, 
   Layout, 
@@ -59,7 +60,7 @@ export default function ResourcesPage() {
       const filtered = resources.filter(resource =>
         resource.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         resource.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        resource.parsedContent.toLowerCase().includes(searchQuery.toLowerCase())
+        resource.parsed_content.toLowerCase().includes(searchQuery.toLowerCase())
       );
       setFilteredResources(filtered);
     } else {
@@ -70,11 +71,15 @@ export default function ResourcesPage() {
   const fetchResources = async () => {
     try {
       setLoading(true);
-      // Mock API call - 替换为实际的API调用
-      const mockResources: StoredResource[] = [];
-      setResources(mockResources);
+      const data = await apiService.getResources();
+      setResources(data);
     } catch (error) {
       console.error('Error fetching resources:', error);
+      notification.error({
+        message: '获取资源失败',
+        description: '无法获取资源列表',
+        placement: 'topRight',
+      });
     } finally {
       setLoading(false);
     }
@@ -92,8 +97,7 @@ export default function ResourcesPage() {
 
     try {
       setUploading(true);
-      // Mock API call - 替换为实际的API调用
-      await new Promise(resolve => setTimeout(resolve, 1000)); // 模拟API延迟
+      await apiService.uploadResource(selectedFile, uploadTitle, uploadDescription);
 
       notification.success({
         message: '上传成功',
@@ -129,8 +133,7 @@ export default function ResourcesPage() {
     try {
       setDeleting(true);
       console.log('Deleting resource with ID:', resourceToDelete);
-      // Mock API call - 替换为实际的API调用
-      await new Promise(resolve => setTimeout(resolve, 1000)); // 模拟API延迟
+      await apiService.deleteResource(resourceToDelete);
 
       notification.success({
         message: '删除成功',
@@ -275,11 +278,11 @@ export default function ResourcesPage() {
                   ]}
                 >
                   <Card.Meta
-                    avatar={<div className="text-2xl">{getTypeIcon(resource.type)}</div>}
+                    avatar={<div className="text-2xl">{getTypeIcon(resource.file_type)}</div>}
                     title={
                       <div className="flex items-center justify-between">
                         <Text strong className="truncate">{resource.title}</Text>
-                        <Tag color="blue">{getTypeLabel(resource.type)}</Tag>
+                        <Tag color="blue">{getTypeLabel(resource.file_type)}</Tag>
                       </div>
                     }
                     description={
@@ -294,19 +297,19 @@ export default function ResourcesPage() {
                   <div className="mt-4">
                     <Descriptions size="small" column={1}>
                       <Descriptions.Item label="文件名">
-                        <Text code className="text-xs">{resource.fileName}</Text>
+                        <Text code className="text-xs">{resource.file_name}</Text>
                       </Descriptions.Item>
                       <Descriptions.Item label="大小">
-                        {formatFileSize(resource.fileSize)}
+                        {formatFileSize(resource.file_size)}
                       </Descriptions.Item>
                       <Descriptions.Item label="创建时间">
-                        {new Date(resource.createdAt).toLocaleDateString()}
+                        {new Date(resource.created_at).toLocaleDateString()}
                       </Descriptions.Item>
                     </Descriptions>
                     
                     <div className="mt-3 pt-3 border-t border-gray-100">
                       <Paragraph ellipsis={{ rows: 3 }} className="text-xs text-gray-500 mb-0">
-                        {resource.parsedContent}
+                        {resource.parsed_content}
                       </Paragraph>
                     </div>
                   </div>
