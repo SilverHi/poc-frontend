@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { InputResource, Agent, ConversationNode, CustomAgent } from '@/types';
-import { mockAgents, executeAgent } from '@/data/mockData';
 import { StoredResource } from '@/lib/database';
 import InputResourceCard from '@/components/InputResourceCard';
 import AgentCard from '@/components/AgentCard';
@@ -40,6 +39,7 @@ function App() {
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionLogs, setExecutionLogs] = useState<string[]>([]);
   const [customAgents, setCustomAgents] = useState<CustomAgent[]>([]);
+  const [allAgents, setAllAgents] = useState<Agent[]>([]);
   const [storedResources, setStoredResources] = useState<StoredResource[]>([]);
   const [resourceSearchQuery, setResourceSearchQuery] = useState('');
   const [filteredStoredResources, setFilteredStoredResources] = useState<StoredResource[]>([]);
@@ -56,7 +56,7 @@ function App() {
 
   // Fetch custom agents and resources on component mount
   useEffect(() => {
-    fetchCustomAgents();
+    fetchAgents();
     fetchStoredResources();
   }, []);
 
@@ -90,13 +90,25 @@ function App() {
     }
   }, [resourceSearchQuery, storedResources]);
 
-  const fetchCustomAgents = async () => {
+  const fetchAgents = async () => {
     try {
       const data = await apiService.getAgents() as CustomAgent[];
       setCustomAgents(data);
+      
+      // Convert CustomAgent to Agent format for allAgents
+      const convertedAgents: Agent[] = data.map(agent => ({
+        id: agent.id,
+        name: agent.name,
+        description: agent.description,
+        icon: agent.icon,
+        category: agent.category as 'analysis' | 'validation' | 'generation' | 'optimization',
+        color: agent.color,
+      }));
+      
+      setAllAgents(convertedAgents);
     } catch (error) {
-      console.error('Error fetching custom agents:', error);
-      message.error('Failed to fetch custom agents');
+      console.error('Error fetching agents:', error);
+      message.error('Failed to fetch agents');
     }
   };
 
@@ -232,16 +244,8 @@ function App() {
 
       let result;
       
-      // Check if it's a custom agent or mock agent
-      const isCustomAgent = customAgents.some(agent => agent.id === currentAgent.id);
-      
-      if (isCustomAgent) {
-        // Execute custom agent via API
-        result = await executeCustomAgent(currentAgent.id, inputContent);
-      } else {
-        // Execute mock agent
-        result = await executeAgent(currentAgent.id, inputContent);
-      }
+      // All agents now execute via API
+      result = await executeCustomAgent(currentAgent.id, inputContent);
 
       // Update bubble node to completed
       setConversationNodes(prev => prev.map(node => 
@@ -463,11 +467,11 @@ function App() {
             </Text>
           </div>
           <div className="flex-1 overflow-y-auto p-4">
-            {/* Built-in Agents */}
+            {/* All Agents */}
             <div className="mb-4">
-              <Text strong className="text-sm text-gray-700 mb-2 block">Built-in Agents</Text>
+              <Text strong className="text-sm text-gray-700 mb-2 block">AI Agents</Text>
               <div className="space-y-2">
-                {mockAgents.map(agent => (
+                {allAgents.map(agent => (
                   <AgentCard
                     key={agent.id}
                     agent={agent}
@@ -477,30 +481,6 @@ function App() {
                 ))}
               </div>
             </div>
-
-            {/* Custom Agents */}
-            {customAgents.length > 0 && (
-              <div>
-                <Text strong className="text-sm text-gray-700 mb-2 block">Custom Agents</Text>
-                <div className="space-y-2">
-                  {customAgents.map(agent => (
-                    <AgentCard
-                      key={agent.id}
-                      agent={{
-                        id: agent.id,
-                        name: agent.name,
-                        description: agent.description,
-                        icon: agent.icon,
-                        category: agent.category as 'analysis' | 'validation' | 'generation' | 'optimization',
-                        color: agent.color,
-                      }}
-                      onSelect={handleAgentSelect}
-                      disabled={isExecuting}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </Sider>
       </Layout>

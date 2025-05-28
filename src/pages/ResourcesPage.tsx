@@ -44,6 +44,7 @@ export default function ResourcesPage() {
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadDescription, setUploadDescription] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [fileInputKey, setFileInputKey] = useState(0); // Add key to force file input reset
   
   // Delete confirmation modal states
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -104,10 +105,14 @@ export default function ResourcesPage() {
         description: 'File uploaded successfully!',
         placement: 'topRight',
       });
+      
+      // Clear form and close modal
       setShowUploadModal(false);
       setUploadTitle('');
       setUploadDescription('');
       setSelectedFile(null);
+      setFileInputKey(prev => prev + 1); // Force file input reset
+      
       fetchResources(); // Refresh the list
     } catch (error) {
       console.error('Upload error:', error);
@@ -209,7 +214,14 @@ export default function ResourcesPage() {
           <Button
             type="primary"
             icon={<UploadOutlined />}
-            onClick={() => setShowUploadModal(true)}
+            onClick={() => {
+              // Clear form state before opening modal
+              setUploadTitle('');
+              setUploadDescription('');
+              setSelectedFile(null);
+              setFileInputKey(prev => prev + 1);
+              setShowUploadModal(true);
+            }}
           >
             Upload File
           </Button>
@@ -328,6 +340,7 @@ export default function ResourcesPage() {
           setUploadTitle('');
           setUploadDescription('');
           setSelectedFile(null);
+          setFileInputKey(prev => prev + 1); // Force file input reset
         }}
         onSubmit={handleFileUpload}
         title="Upload File"
@@ -367,6 +380,7 @@ export default function ResourcesPage() {
             File *
           </label>
           <input
+            key={fileInputKey}
             type="file"
             accept=".pdf,.md,.markdown,.txt"
             onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}

@@ -39,6 +39,7 @@ export default function AgentsPage() {
   const [agentToDelete, setAgentToDelete] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [optimizing, setOptimizing] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -192,6 +193,28 @@ export default function AgentsPage() {
     setShowForm(false);
   };
 
+  const handleOptimizePrompt = async () => {
+    try {
+      setOptimizing(true);
+      const result = await apiService.optimizePrompt(formData.system_prompt);
+      setFormData(prev => ({ ...prev, system_prompt: result.optimized_prompt }));
+      notification.success({
+        message: 'Prompt Optimized Successfully',
+        description: 'System prompt has been successfully optimized',
+        placement: 'topRight',
+      });
+    } catch (error) {
+      console.error('Error optimizing prompt:', error);
+      notification.error({
+        message: 'Optimization Failed',
+        description: 'Failed to optimize prompt, please try again later',
+        placement: 'topRight',
+      });
+    } finally {
+      setOptimizing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -335,12 +358,21 @@ export default function AgentsPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               System Prompt
+              <button
+                type="button"
+                onClick={handleOptimizePrompt}
+                disabled={!formData.system_prompt.trim() || optimizing}
+                className="ml-2 px-3 py-1 text-xs font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                {optimizing ? 'Optimizing...' : '✨ Optimize Prompt'}
+              </button>
             </label>
-            <input
-              type="text"
+            <textarea
               value={formData.system_prompt}
               onChange={(e) => setFormData(prev => ({ ...prev, system_prompt: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
+              rows={6}
+              placeholder="Please enter system prompt, describing the role and tasks of the AI assistant..."
               required
             />
           </div>
