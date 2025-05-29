@@ -1,8 +1,9 @@
-import React from 'react';
-import { Card, Typography, Space, Tag, Avatar, Button, Input } from 'antd';
+import React, { useState } from 'react';
+import { Card, Typography, Space, Tag, Avatar, Button, Input, Upload, message, Dropdown, Menu } from 'antd';
 import { ConversationNode, InputResource, Agent } from '@/types';
-import { DeleteOutlined, EditOutlined, SaveOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined, SaveOutlined, UploadOutlined, PlusOutlined, LoadingOutlined, HistoryOutlined, FileAddOutlined } from '@ant-design/icons';
 import AgentSelectionCard from './AgentSelectionCard';
+import { apiService } from '@/services/api';
 
 const { Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -11,6 +12,8 @@ interface ConversationCardProps {
   node: ConversationNode;
   onResourceRemove?: (resourceId: string) => void;
   onContentChange?: (content: string) => void;
+  onResourceAdd?: (resource: InputResource) => void;
+  onQuickUpload?: () => void;
   className?: string;
   // Agent related props - only needed for current input
   selectedAgent?: Agent | null;
@@ -24,6 +27,8 @@ export default function ConversationCard({
   node, 
   onResourceRemove, 
   onContentChange, 
+  onResourceAdd,
+  onQuickUpload,
   className,
   selectedAgent,
   onExecute,
@@ -31,6 +36,8 @@ export default function ConversationCard({
   isExecuting,
   executionLogs
 }: ConversationCardProps) {
+  const [uploading, setUploading] = useState(false);
+  
   const isInput = node.type === 'input';
   const isOutput = node.type === 'output';
   const isCurrentInput = node.isCurrentInput || false;
@@ -58,10 +65,97 @@ export default function ConversationCard({
     }
   };
 
+  // Handle file upload with real backend integration
+  const handleFileUpload = async (file: File) => {
+    if (!file) return false;
+
+    // Validate file type
+    const allowedTypes = ['.pdf', '.md', '.markdown', '.txt', '.text'];
+    const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+    
+    if (!allowedTypes.includes(fileExtension)) {
+      message.error(`Unsupported file type. Supported types: ${allowedTypes.join(', ')}`);
+      return false;
+    }
+
+    // Validate file size (10MB limit)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      message.error('File size exceeds 10MB limit');
+      return false;
+    }
+
+    try {
+      setUploading(true);
+      
+      // Show uploading message
+      const hideLoading = message.loading('Uploading file...', 0);
+      
+      // Upload file to backend
+      const response = await apiService.uploadResource(file, file.name, `Quick upload: ${file.name}`);
+      
+      hideLoading();
+      
+      // Create resource object for immediate display
+      const newResource: InputResource = {
+        id: `uploaded-${Date.now()}`, // Use timestamp for now, could be improved with backend response
+        title: file.name,
+        type: fileExtension === '.pdf' ? 'pdf' : fileExtension.includes('.md') ? 'md' : 'text',
+        content: 'File uploaded and processed successfully',
+        description: `Uploaded file: ${file.name}`
+      };
+      
+      // Add to resources
+      onResourceAdd?.(newResource);
+      
+      message.success(`File "${file.name}" uploaded successfully!`);
+      
+    } catch (error) {
+      console.error('Upload error:', error);
+      message.error('Upload failed. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+    
+    return false; // Prevent default upload behavior
+  };
+
+  // Handle menu click
+  const handleMenuClick = ({ key }: { key: string }) => {
+    if (key === 'upload') {
+      // Trigger file upload
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.pdf,.md,.markdown,.txt';
+      input.onchange = (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) {
+          handleFileUpload(file);
+        }
+      };
+      input.click();
+    } else if (key === 'history') {
+      // Handle history reference
+      message.info('History reference feature coming soon');
+    }
+  };
+
+  // Create dropdown menu
+  const menu = (
+    <Menu onClick={handleMenuClick}>
+      <Menu.Item key="upload" icon={<UploadOutlined />}>
+        Upload File
+      </Menu.Item>
+      <Menu.Item key="history" icon={<HistoryOutlined />}>
+        Add History Reference
+      </Menu.Item>
+    </Menu>
+  );
+
   return (
     <Card 
       className={`w-full ${className || ''} ${getCardStyle()}`}
-      style={{ height: '33vh' }} // Fixed height
+      style={{ minHeight: isCurrentInput ? '40vh' : '33vh' }} // Increased height for current input
     >
       {/* Card header - fixed height */}
       <div className="mb-3 flex-shrink-0">
@@ -98,7 +192,7 @@ export default function ConversationCard({
       </div>
 
       {/* Content area - scrollable */}
-      <div className="flex-1 overflow-hidden flex flex-col" style={{ height: 'calc(33vh - 120px)' }}>
+      <div className="flex-1 overflow-hidden flex flex-col" style={{ height: isCurrentInput ? 'calc(40vh - 120px)' : 'calc(33vh - 120px)' }}>
         <div className="flex-1 overflow-y-auto mb-3">
           {isEditable && isCurrentInput ? (
             // Editable state: show TextArea
@@ -117,8 +211,57 @@ export default function ConversationCard({
           )}
         </div>
 
-        {/* Resource tags - fixed at bottom */}
-        {node.resources && node.resources.length > 0 && (
+        {/* Resource management section - always visible for current input */}
+        {isCurrentInput && (
+          <div className="flex-shrink-0 border-t border-gray-200 pt-3 mb-3">
+            <div className="flex items-center justify-between mb-3">
+              <Text strong className="text-sm text-gray-700">
+                Referenced Resources ({node.resources?.length || 0})
+              </Text>
+              <Dropdown overlay={menu} disabled={uploading}>
+                <Button 
+                  type="primary" 
+                  size="small" 
+                  icon={uploading ? <LoadingOutlined /> : <PlusOutlined />}
+                  className="bg-blue-600 hover:bg-blue-700"
+                  loading={uploading}
+                />
+              </Dropdown>
+            </div>
+            
+            {/* Resource tags display */}
+            {node.resources && node.resources.length > 0 ? (
+              <div className="max-h-20 overflow-y-auto">
+                <Space wrap>
+                  {node.resources.map(resource => (
+                    <Tag
+                      key={resource.id}
+                      closable={!!onResourceRemove && !uploading}
+                      onClose={() => onResourceRemove?.(resource.id)}
+                      color="blue"
+                      className="mb-1"
+                    >
+                      {resource.title}
+                    </Tag>
+                  ))}
+                </Space>
+              </div>
+            ) : (
+              <div className="text-center py-4 border border-dashed border-gray-300 rounded-lg bg-gray-50">
+                <Text type="secondary" className="text-sm">
+                  No resources selected
+                </Text>
+                <br />
+                <Text type="secondary" className="text-xs">
+                  Upload files or select from the left sidebar
+                </Text>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Resource tags for non-current inputs - original behavior */}
+        {!isCurrentInput && node.resources && node.resources.length > 0 && (
           <div className="flex-shrink-0 border-t border-gray-200 pt-3">
             <Text strong className="text-sm text-gray-700 mb-2 block">
               Referenced Resources ({node.resources.length})
@@ -128,8 +271,6 @@ export default function ConversationCard({
                 {node.resources.map(resource => (
                   <Tag
                     key={resource.id}
-                    closable={isCurrentInput && !!onResourceRemove}
-                    onClose={() => onResourceRemove?.(resource.id)}
                     color="blue"
                     className="mb-1"
                   >

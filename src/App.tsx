@@ -316,6 +316,28 @@ function App() {
     ));
   };
 
+  const handleResourceAdd = (nodeId: string, resource: InputResource) => {
+    setConversationNodes(prev => prev.map(node => 
+      node.id === nodeId
+        ? { 
+            ...node, 
+            resources: node.resources 
+              ? [...node.resources, resource]
+              : [resource]
+          }
+        : node
+    ));
+    
+    // Also add to selectedResources for consistency
+    setSelectedResources(prev => {
+      const exists = prev.some(r => r.id === resource.id);
+      return exists ? prev : [...prev, resource];
+    });
+    
+    // Refresh stored resources to get the latest from backend
+    fetchStoredResources();
+  };
+
   const handleBubbleClick = (nodeId: string) => {
     // Can implement bubble click logic here, such as expanding detailed information
     console.log('Clicked bubble:', nodeId);
@@ -338,6 +360,11 @@ function App() {
 
   const handleResourceManageClick = () => {
     console.log('Resource management button clicked');
+    navigate('/resources');
+  };
+
+  const handleQuickUpload = () => {
+    console.log('Quick upload button clicked');
     navigate('/resources');
   };
 
@@ -447,6 +474,8 @@ function App() {
             <ConversationChain
               nodes={conversationNodes}
               onResourceRemove={handleResourceRemove}
+              onResourceAdd={handleResourceAdd}
+              onQuickUpload={handleQuickUpload}
               onBubbleClick={handleBubbleClick}
               onContentChange={handleContentChange}
               selectedAgent={selectedAgent}

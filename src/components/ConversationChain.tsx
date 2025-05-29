@@ -12,6 +12,8 @@ const { Text } = Typography;
 interface ConversationChainProps {
   nodes: ConversationNode[];
   onResourceRemove?: (nodeId: string, resourceId: string) => void;
+  onResourceAdd?: (nodeId: string, resource: InputResource) => void;
+  onQuickUpload?: () => void;
   onBubbleClick?: (nodeId: string) => void;
   onContentChange?: (nodeId: string, content: string) => void;
   // Keep Agent related props for displaying selected Agent
@@ -25,6 +27,8 @@ interface ConversationChainProps {
 export default function ConversationChain({ 
   nodes, 
   onResourceRemove, 
+  onResourceAdd,
+  onQuickUpload,
   onBubbleClick,
   onContentChange,
   selectedAgent,
@@ -53,6 +57,12 @@ export default function ConversationChain({
               ? (resourceId: string) => onResourceRemove(node.id, resourceId)
               : undefined
           }
+          onResourceAdd={
+            node.isCurrentInput && onResourceAdd
+              ? (resource: InputResource) => onResourceAdd(node.id, resource)
+              : undefined
+          }
+          onQuickUpload={node.isCurrentInput ? onQuickUpload : undefined}
           onContentChange={
             node.isCurrentInput && onContentChange
               ? (content: string) => onContentChange(node.id, content)
