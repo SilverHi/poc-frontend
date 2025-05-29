@@ -1,4 +1,4 @@
-import { StoredResource, CustomAgent } from '@/types';
+import { StoredResource, CustomAgent, ConversationSummary, Conversation, SaveConversationRequest } from '@/types';
 
 const API_BASE_URL = 'http://localhost:8000/api/v1';
 
@@ -132,6 +132,32 @@ class ApiClient {
       body: JSON.stringify(config),
     });
   }
+
+  // Conversation related APIs
+  async getConversations(): Promise<ConversationSummary[]> {
+    return this.request('/conversations');
+  }
+
+  async getConversation(conversationId: string): Promise<Conversation> {
+    return this.request(`/conversations/${conversationId}`);
+  }
+
+  async saveConversation(request: SaveConversationRequest): Promise<Conversation> {
+    return this.request('/conversations/save', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  async deleteConversation(conversationId: string) {
+    return this.request(`/conversations/${conversationId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getConversationNodes(conversationId: string): Promise<{ nodes: any[] }> {
+    return this.request(`/conversations/${conversationId}/nodes`);
+  }
 }
 
 // Create API client instance
@@ -197,5 +223,26 @@ export const apiService = {
   // Update OpenAI configuration
   async updateOpenAIConfig(config: any) {
     return apiClient.updateOpenAIConfig(config);
+  },
+
+  // Conversation related methods
+  async getConversations() {
+    return apiClient.getConversations();
+  },
+
+  async getConversation(conversationId: string) {
+    return apiClient.getConversation(conversationId);
+  },
+
+  async saveConversation(request: SaveConversationRequest) {
+    return apiClient.saveConversation(request);
+  },
+
+  async deleteConversation(conversationId: string) {
+    return apiClient.deleteConversation(conversationId);
+  },
+
+  async getConversationNodes(conversationId: string) {
+    return apiClient.getConversationNodes(conversationId);
   }
 }; 

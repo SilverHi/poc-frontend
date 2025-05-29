@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { InputResource, Agent, ConversationNode, CustomAgent } from '@/types';
+import { InputResource, Agent, ConversationNode, CustomAgent, SaveConversationRequest } from '@/types';
 import { StoredResource } from '@/lib/database';
 import InputResourceCard from '@/components/InputResourceCard';
 import AgentCard from '@/components/AgentCard';
 import ConversationChain from '@/components/ConversationChain';
+import ConversationHistoryDrawer from '@/components/ConversationHistoryDrawer';
 import { apiService } from '@/services/api';
 import { 
   Layout, 
@@ -16,7 +17,8 @@ import {
   Tag, 
   Empty,
   Avatar,
-  message
+  message,
+  Modal
 } from 'antd';
 import { 
   ToolOutlined, 
@@ -24,7 +26,10 @@ import {
   UploadOutlined, 
   SearchOutlined,
   RocketOutlined,
-  PlayCircleOutlined
+  PlayCircleOutlined,
+  MessageOutlined,
+  SaveOutlined,
+  HistoryOutlined
 } from '@ant-design/icons';
 
 const { Header, Content, Sider } = Layout;
@@ -43,6 +48,12 @@ function App() {
   const [storedResources, setStoredResources] = useState<StoredResource[]>([]);
   const [resourceSearchQuery, setResourceSearchQuery] = useState('');
   const [filteredStoredResources, setFilteredStoredResources] = useState<StoredResource[]>([]);
+  
+  // Conversation history related states
+  const [historyDrawerOpen, setHistoryDrawerOpen] = useState(false);
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [conversationTitle, setConversationTitle] = useState('');
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   
   const conversationRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -183,23 +194,34 @@ function App() {
     setIsExecuting(true);
     setExecutionLogs([]);
     
-    // Get current input node content
+    // Get current input node content and save it for later use
     const currentInputNode = conversationNodes.find(node => node.isCurrentInput);
     const inputContent = currentInputNode ? getInputContent() : userInput;
     
+    // Save the input node information for auto-save later
+    let inputNodeForSaving: ConversationNode;
+    
     // If no current input node, create the first input node
     if (!currentInputNode) {
-      const firstInputNode: ConversationNode = {
+      inputNodeForSaving = {
         id: `input-${Date.now()}`,
         type: 'input',
         content: userInput,
         resources: [...selectedResources],
         timestamp: new Date(),
-        isCurrentInput: false, // Becomes history after execution
+        isCurrentInput: false,
         isEditable: false
       };
-      setConversationNodes(prev => [...prev, firstInputNode]);
+      setConversationNodes(prev => [...prev, inputNodeForSaving]);
     } else {
+      // Save the current input node as history input node for saving
+      inputNodeForSaving = {
+        ...currentInputNode,
+        type: 'input',
+        isCurrentInput: false,
+        isEditable: false
+      };
+      
       // Convert current node to input type and mark as history
       setConversationNodes(prev => prev.map(node => 
         node.isCurrentInput 
@@ -277,6 +299,24 @@ function App() {
       setUserInput(result.output);
       setSelectedResources([]);
       
+      // Auto-save conversation after successful execution
+      try {
+        // Build complete nodes array for saving using the saved input node
+        // Get all existing history nodes (excluding any current input)
+        const historyNodes = conversationNodes.filter(node => !node.isCurrentInput && node.type !== 'bubble');
+        
+        // Build the complete conversation: history + input + bubble + output
+        const updatedBubbleNode = { ...bubbleNode, status: 'completed' as const, content: 'Processing completed', logs: result.logs };
+        const allNodes = [...historyNodes, inputNodeForSaving, updatedBubbleNode, outputNode];
+        
+        console.log('🔍 Nodes to save:', allNodes.map(n => ({ id: n.id, type: n.type, content: n.content.substring(0, 50) })));
+        
+        await autoSaveConversation(allNodes);
+      } catch (saveError) {
+        console.error('Auto-save failed:', saveError);
+        // Don't show error to user for auto-save failures
+      }
+      
     } catch (error) {
       // Update bubble node to error
       setConversationNodes(prev => prev.map(node => 
@@ -292,6 +332,52 @@ function App() {
       setIsExecuting(false);
       setExecutionLogs([]);
     }
+  };
+
+  // Auto-save conversation function
+  const autoSaveConversation = async (nodesToSave?: ConversationNode[]) => {
+    // If we already have a conversation ID, update the existing conversation
+    if (currentConversationId) {
+      // For now, we'll just skip auto-save if conversation already exists
+      // In the future, we could implement an update API
+      console.log('Conversation already saved with ID:', currentConversationId);
+      return;
+    }
+    
+    // Use provided nodes or current state
+    const nodes = nodesToSave || conversationNodes;
+    
+    // Generate a title based on the first meaningful content
+    const firstInputNode = nodes.find(node => 
+      node.type === 'input' && node.content.trim()
+    );
+    
+    let title = 'Untitled Conversation';
+    if (firstInputNode && firstInputNode.content.trim()) {
+      // Use first 50 characters of the first input as title
+      title = firstInputNode.content.trim().substring(0, 50);
+      if (firstInputNode.content.length > 50) {
+        title += '...';
+      }
+    }
+    
+    // Add timestamp to make title unique
+    const timestamp = new Date().toLocaleString();
+    title = `${title} - ${timestamp}`;
+    
+    const request: SaveConversationRequest = {
+      title: title,
+      conversation_nodes: nodes.map(node => ({
+        ...node,
+        agentId: node.agent?.id,
+        agentName: node.agent?.name,
+        executionLogs: node.logs
+      }))
+    };
+
+    const savedConversation = await apiService.saveConversation(request);
+    setCurrentConversationId(savedConversation.id);
+    console.log('Conversation auto-saved:', savedConversation.id);
   };
 
   const clearConversation = () => {
@@ -311,6 +397,7 @@ function App() {
     setSelectedResources([]);
     setSelectedAgent(null);
     setExecutionLogs([]);
+    setCurrentConversationId(null);
   };
 
   const handleResourceRemove = (nodeId: string, resourceId: string) => {
@@ -459,6 +546,14 @@ function App() {
 
       message.success('Retry successful!');
 
+      // Auto-save conversation after successful retry
+      try {
+        await autoSaveConversation();
+      } catch (saveError) {
+        console.error('Auto-save after retry failed:', saveError);
+        // Don't show error to user for auto-save failures
+      }
+
     } catch (error) {
       console.error('Retry failed:', error);
       
@@ -480,6 +575,122 @@ function App() {
     }
   };
 
+  // Conversation history related functions
+  const handleHistoryDrawerOpen = () => {
+    setHistoryDrawerOpen(true);
+  };
+
+  const handleHistoryDrawerClose = () => {
+    setHistoryDrawerOpen(false);
+  };
+
+  const handleSaveConversation = () => {
+    // Check if there are meaningful conversation nodes to save
+    const meaningfulNodes = conversationNodes.filter(node => 
+      node.content.trim() || (node.resources && node.resources.length > 0)
+    );
+    
+    if (meaningfulNodes.length === 0) {
+      message.warning('No content to save');
+      return;
+    }
+    
+    setSaveModalOpen(true);
+  };
+
+  const handleSaveModalOk = async () => {
+    if (!conversationTitle.trim()) {
+      message.error('Please enter a conversation title');
+      return;
+    }
+
+    try {
+      const request: SaveConversationRequest = {
+        title: conversationTitle,
+        conversation_nodes: conversationNodes.map(node => ({
+          ...node,
+          agentId: node.agent?.id,
+          agentName: node.agent?.name,
+          executionLogs: node.logs
+        }))
+      };
+
+      const savedConversation = await apiService.saveConversation(request);
+      setCurrentConversationId(savedConversation.id);
+      message.success('Conversation saved successfully');
+      setSaveModalOpen(false);
+      setConversationTitle('');
+    } catch (error) {
+      console.error('Error saving conversation:', error);
+      message.error('Failed to save conversation');
+    }
+  };
+
+  const handleSaveModalCancel = () => {
+    setSaveModalOpen(false);
+    setConversationTitle('');
+  };
+
+  const handleConversationSelect = async (conversationId: string) => {
+    try {
+      const response = await apiService.getConversationNodes(conversationId);
+      const nodes = response.nodes;
+      
+      if (nodes && nodes.length > 0) {
+        // Convert backend nodes to frontend format
+        const convertedNodes: ConversationNode[] = nodes.map(node => ({
+          id: node.id,
+          type: node.type,
+          content: node.content,
+          timestamp: new Date(node.timestamp),
+          isCurrentInput: node.isCurrentInput,
+          isEditable: node.isEditable,
+          resources: node.resources || [],
+          agent: node.agentId ? {
+            id: node.agentId,
+            name: node.agentName || 'Unknown Agent',
+            description: '',
+            icon: '🤖',
+            category: 'analysis' as const,
+            color: '#1890ff'
+          } : undefined,
+          logs: node.executionLogs || [],
+          status: node.type === 'output' ? 'completed' as const : undefined
+        }));
+
+        // Set the last node as current input if it's editable
+        const lastNode = convertedNodes[convertedNodes.length - 1];
+        if (lastNode && lastNode.isEditable) {
+          convertedNodes.forEach(node => {
+            node.isCurrentInput = node.id === lastNode.id;
+          });
+        } else {
+          // If no editable node, create a new input node
+          const newInputNode: ConversationNode = {
+            id: `input-${Date.now()}`,
+            type: 'input',
+            content: '',
+            resources: [],
+            timestamp: new Date(),
+            isCurrentInput: true,
+            isEditable: true
+          };
+          convertedNodes.push(newInputNode);
+        }
+
+        setConversationNodes(convertedNodes);
+        setCurrentConversationId(conversationId);
+        setSelectedResources([]);
+        setUserInput('');
+        setSelectedAgent(null);
+        message.success('Conversation loaded successfully');
+      }
+    } catch (error) {
+      console.error('Error loading conversation:', error);
+      message.error('Failed to load conversation');
+    }
+  };
+
   return (
     <Layout className="min-h-screen">
       {/* Header */}
@@ -491,6 +702,18 @@ function App() {
           </Text>
         </div>
         <Space>
+          <Button
+            icon={<HistoryOutlined />}
+            onClick={handleHistoryDrawerOpen}
+          >
+            History
+          </Button>
+          <Button
+            icon={<SaveOutlined />}
+            onClick={handleSaveConversation}
+          >
+            Save
+          </Button>
           <Button
             type="primary"
             icon={<ToolOutlined />}
@@ -626,6 +849,33 @@ function App() {
           </div>
         </Sider>
       </Layout>
+
+      {/* Conversation History Drawer */}
+      <ConversationHistoryDrawer
+        open={historyDrawerOpen}
+        onClose={handleHistoryDrawerClose}
+        onConversationSelect={handleConversationSelect}
+      />
+
+      {/* Save Conversation Modal */}
+      <Modal
+        title="Save Conversation"
+        open={saveModalOpen}
+        onOk={handleSaveModalOk}
+        onCancel={handleSaveModalCancel}
+        okText="Save"
+        cancelText="Cancel"
+      >
+        <div style={{ marginBottom: 16 }}>
+          <Text>Enter a title for this conversation:</Text>
+        </div>
+        <Input
+          placeholder="Conversation title..."
+          value={conversationTitle}
+          onChange={(e) => setConversationTitle(e.target.value)}
+          onPressEnter={handleSaveModalOk}
+        />
+      </Modal>
     </Layout>
   );
 }
