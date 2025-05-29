@@ -14,6 +14,7 @@ interface ConversationChainProps {
   onResourceRemove?: (nodeId: string, resourceId: string) => void;
   onResourceAdd?: (nodeId: string, resource: InputResource) => void;
   onQuickUpload?: () => void;
+  onRetry?: (nodeId: string) => void;
   onBubbleClick?: (nodeId: string) => void;
   onContentChange?: (nodeId: string, content: string) => void;
   // Keep Agent related props for displaying selected Agent
@@ -29,6 +30,7 @@ export default function ConversationChain({
   onResourceRemove, 
   onResourceAdd,
   onQuickUpload,
+  onRetry,
   onBubbleClick,
   onContentChange,
   selectedAgent,
@@ -63,6 +65,7 @@ export default function ConversationChain({
               : undefined
           }
           onQuickUpload={node.isCurrentInput ? onQuickUpload : undefined}
+          onRetry={onRetry ? () => onRetry(node.id) : undefined}
           onContentChange={
             node.isCurrentInput && onContentChange
               ? (content: string) => onContentChange(node.id, content)
@@ -83,6 +86,7 @@ export default function ConversationChain({
           <BubbleMessage
             node={node}
             onClick={() => onBubbleClick?.(node.id)}
+            onRetry={onRetry ? () => onRetry(node.id) : undefined}
           />
         </div>
       );

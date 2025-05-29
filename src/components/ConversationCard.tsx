@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, Typography, Space, Tag, Avatar, Button, Input, Upload, message, Dropdown, Menu, Modal } from 'antd';
 import { ConversationNode, InputResource, Agent } from '@/types';
-import { DeleteOutlined, EditOutlined, SaveOutlined, UploadOutlined, PlusOutlined, LoadingOutlined, HistoryOutlined, FileAddOutlined, EyeOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined, SaveOutlined, UploadOutlined, PlusOutlined, LoadingOutlined, HistoryOutlined, FileAddOutlined, EyeOutlined, ReloadOutlined } from '@ant-design/icons';
 import AgentSelectionCard from './AgentSelectionCard';
 import { apiService } from '@/services/api';
 
@@ -14,6 +14,7 @@ interface ConversationCardProps {
   onContentChange?: (content: string) => void;
   onResourceAdd?: (resource: InputResource) => void;
   onQuickUpload?: () => void;
+  onRetry?: () => void;
   className?: string;
   // Agent related props - only needed for current input
   selectedAgent?: Agent | null;
@@ -29,6 +30,7 @@ export default function ConversationCard({
   onContentChange, 
   onResourceAdd,
   onQuickUpload,
+  onRetry,
   className,
   selectedAgent,
   onExecute,
@@ -303,10 +305,21 @@ export default function ConversationCard({
           {/* Status indicator */}
           {node.status && node.status !== 'completed' && (
             <div className="flex-shrink-0 border-t border-gray-200 pt-2 mt-2">
-              <Space>
+              <Space className="w-full justify-between">
                 <Text type="secondary" className="text-sm">
                   Status: {node.status === 'running' ? 'Executing...' : node.status === 'error' ? 'Execution failed' : 'Waiting'}
                 </Text>
+                {node.status === 'error' && onRetry && (
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<ReloadOutlined />}
+                    onClick={onRetry}
+                    className="bg-red-600 hover:bg-red-700 border-red-600"
+                  >
+                    Retry
+                  </Button>
+                )}
               </Space>
             </div>
           )}

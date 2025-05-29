@@ -200,10 +200,15 @@ function App() {
       };
       setConversationNodes(prev => [...prev, firstInputNode]);
     } else {
-      // Mark current input node as history
+      // Convert current node to input type and mark as history
       setConversationNodes(prev => prev.map(node => 
         node.isCurrentInput 
-          ? { ...node, isCurrentInput: false, isEditable: false }
+          ? { 
+              ...node, 
+              type: 'input', // Convert output to input
+              isCurrentInput: false, 
+              isEditable: false 
+            }
           : node
       ));
     }
@@ -254,7 +259,7 @@ function App() {
           : node
       ));
 
-      // Create output node that becomes the new current input
+      // Create output node (becomes current input for next round)
       const outputNode: ConversationNode = {
         id: `output-${Date.now()}`,
         type: 'output',
@@ -262,7 +267,7 @@ function App() {
         agent: currentAgent,
         status: 'completed',
         timestamp: new Date(),
-        isCurrentInput: true, // Output node becomes new current input
+        isCurrentInput: true, // Output becomes current input for next round
         isEditable: true
       };
       
@@ -366,6 +371,113 @@ function App() {
   const handleQuickUpload = () => {
     console.log('Quick upload button clicked');
     navigate('/resources');
+  };
+
+  const handleRetry = async (nodeId: string) => {
+    console.log('Retry button clicked for node:', nodeId);
+    
+    // Find the error node
+    const errorNode = conversationNodes.find(node => node.id === nodeId);
+    if (!errorNode || errorNode.status !== 'error') {
+      message.error('Cannot retry: node not found or not in error state');
+      return;
+    }
+
+    // Find the previous input node to get the original input content
+    const nodeIndex = conversationNodes.findIndex(node => node.id === nodeId);
+    let inputContent = '';
+    let inputResources: InputResource[] = [];
+    let agent: Agent | null = null;
+
+    // Look backwards to find the input that led to this error
+    for (let i = nodeIndex - 1; i >= 0; i--) {
+      const prevNode = conversationNodes[i];
+      if (prevNode.type === 'input') {
+        inputContent = prevNode.content;
+        inputResources = prevNode.resources || [];
+        break;
+      }
+    }
+
+    // Get the agent from the error node
+    agent = errorNode.agent || null;
+
+    if (!agent) {
+      message.error('Cannot retry: no agent information found');
+      return;
+    }
+
+    if (!inputContent && inputResources.length === 0) {
+      message.error('Cannot retry: no input content found');
+      return;
+    }
+
+    try {
+      setIsExecuting(true);
+      
+      // Update the error node to show retrying status
+      setConversationNodes(prev => prev.map(node => 
+        node.id === nodeId 
+          ? { ...node, status: 'running', content: `Retrying with ${agent?.name}...`, logs: ['Retrying execution...'] }
+          : node
+      ));
+
+      // Prepare input content with resources
+      let fullInputContent = inputContent;
+      if (inputResources.length > 0) {
+        const resourceContent = inputResources.map(r => `[${r.title}]: ${r.content}`).join('\n\n');
+        fullInputContent = fullInputContent ? `${fullInputContent}\n\nReference Resources:\n${resourceContent}` : resourceContent;
+      }
+
+      // Execute the agent again
+      const result = await executeCustomAgent(agent.id, fullInputContent);
+
+      // Update bubble node to completed (same as normal execution)
+      setConversationNodes(prev => prev.map(node => 
+        node.id === nodeId 
+          ? { ...node, status: 'completed', content: 'Processing completed', logs: result.logs }
+          : node
+      ));
+
+      // Create output node (becomes current input for next round)
+      const outputNode: ConversationNode = {
+        id: `output-${Date.now()}`,
+        type: 'output',
+        content: result.output,
+        agent: agent,
+        status: 'completed',
+        timestamp: new Date(),
+        isCurrentInput: true, // Output becomes current input for next round
+        isEditable: true
+      };
+      
+      setConversationNodes(prev => [...prev, outputNode]);
+
+      // Update userInput to output content, prepare for next round
+      setUserInput(result.output);
+      setSelectedResources([]);
+
+      message.success('Retry successful!');
+
+    } catch (error) {
+      console.error('Retry failed:', error);
+      
+      // Update the node back to error state
+      setConversationNodes(prev => prev.map(node => 
+        node.id === nodeId 
+          ? { 
+              ...node, 
+              status: 'error', 
+              content: `Retry failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              logs: [`Retry failed: ${error instanceof Error ? error.message : 'Unknown error'}`]
+            }
+          : node
+      ));
+
+      message.error('Retry failed. Please try again.');
+    } finally {
+      setIsExecuting(false);
+    }
   };
 
   return (
@@ -476,6 +588,7 @@ function App() {
               onResourceRemove={handleResourceRemove}
               onResourceAdd={handleResourceAdd}
               onQuickUpload={handleQuickUpload}
+              onRetry={handleRetry}
               onBubbleClick={handleBubbleClick}
               onContentChange={handleContentChange}
               selectedAgent={selectedAgent}
