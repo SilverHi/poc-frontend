@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Card, Typography, Space, Tag, Avatar, Button, Input, Upload, message, Dropdown, Menu } from 'antd';
+import { Card, Typography, Space, Tag, Avatar, Button, Input, Upload, message, Dropdown, Menu, Modal } from 'antd';
 import { ConversationNode, InputResource, Agent } from '@/types';
-import { DeleteOutlined, EditOutlined, SaveOutlined, UploadOutlined, PlusOutlined, LoadingOutlined, HistoryOutlined, FileAddOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined, SaveOutlined, UploadOutlined, PlusOutlined, LoadingOutlined, HistoryOutlined, FileAddOutlined, EyeOutlined } from '@ant-design/icons';
 import AgentSelectionCard from './AgentSelectionCard';
 import { apiService } from '@/services/api';
 
@@ -37,6 +37,7 @@ export default function ConversationCard({
   executionLogs
 }: ConversationCardProps) {
   const [uploading, setUploading] = useState(false);
+  const [previewVisible, setPreviewVisible] = useState(false);
   
   const isInput = node.type === 'input';
   const isOutput = node.type === 'output';
@@ -153,91 +154,128 @@ export default function ConversationCard({
   );
 
   return (
-    <Card 
-      className={`w-full ${className || ''} ${getCardStyle()}`}
-      style={{ minHeight: isCurrentInput ? '40vh' : '33vh' }} // Increased height for current input
-    >
-      {/* Card header - fixed height */}
-      <div className="mb-3 flex-shrink-0">
-        <Space align="center" className="w-full justify-between">
-          <Space align="center">
-            {node.agent && (
-              <Avatar 
-                className={node.agent.color}
-                size="large"
-                style={{ 
-                  backgroundColor: node.agent.color.includes('bg-') ? undefined : node.agent.color,
-                  color: 'white'
-                }}
-              >
-                {node.agent.icon}
-              </Avatar>
-            )}
-            <div>
-              <Text strong className="text-lg">
-                {getTitle()}
-              </Text>
+    <>
+      <Card 
+        className={`w-full ${className || ''} ${getCardStyle()}`}
+        style={{ minHeight: isCurrentInput ? '40vh' : '33vh' }} // Changed to minHeight for auto expansion
+      >
+        {/* Card header - fixed height */}
+        <div className="mb-3 flex-shrink-0">
+          <Space align="center" className="w-full justify-between">
+            <Space align="center">
               {node.agent && (
-                <div className="text-sm text-gray-600">{node.agent.name}</div>
+                <Avatar 
+                  className={node.agent.color}
+                  size="large"
+                  style={{ 
+                    backgroundColor: node.agent.color.includes('bg-') ? undefined : node.agent.color,
+                    color: 'white'
+                  }}
+                >
+                  {node.agent.icon}
+                </Avatar>
               )}
-              {isCurrentInput && (
-                <div className="text-xs text-blue-600">Editable</div>
-              )}
-            </div>
+              <div>
+                <Text strong className="text-lg">
+                  {getTitle()}
+                </Text>
+                {node.agent && (
+                  <div className="text-sm text-gray-600">{node.agent.name}</div>
+                )}
+                {isCurrentInput && (
+                  <div className="text-xs text-blue-600">Editable</div>
+                )}
+              </div>
+            </Space>
+            <Space>
+              <Button
+                type="text"
+                size="small"
+                icon={<EyeOutlined />}
+                onClick={() => setPreviewVisible(true)}
+                className="text-gray-500 hover:text-blue-600"
+              />
+              <Text type="secondary" className="text-xs">
+                {node.timestamp?.toLocaleTimeString()}
+              </Text>
+            </Space>
           </Space>
-          <Text type="secondary" className="text-xs">
-            {node.timestamp?.toLocaleTimeString()}
-          </Text>
-        </Space>
-      </div>
-
-      {/* Content area - scrollable */}
-      <div className="flex-1 overflow-hidden flex flex-col" style={{ height: isCurrentInput ? 'calc(40vh - 120px)' : 'calc(33vh - 120px)' }}>
-        <div className="flex-1 overflow-y-auto mb-3">
-          {isEditable && isCurrentInput ? (
-            // Editable state: show TextArea
-            <TextArea
-              value={node.content}
-              onChange={(e) => onContentChange?.(e.target.value)}
-              placeholder="Please enter your requirement description, questions or content to be processed..."
-              className="resize-none h-full border-none"
-              style={{ height: '100%', backgroundColor: 'transparent' }}
-            />
-          ) : (
-            // Read-only state: show text
-            <Paragraph className="text-base whitespace-pre-wrap mb-0">
-              {node.content || 'Please enter content...'}
-            </Paragraph>
-          )}
         </div>
 
-        {/* Resource management section - always visible for current input */}
-        {isCurrentInput && (
-          <div className="flex-shrink-0 border-t border-gray-200 pt-3 mb-3">
-            <div className="flex items-center justify-between mb-3">
-              <Text strong className="text-sm text-gray-700">
-                Referenced Resources ({node.resources?.length || 0})
-              </Text>
-              <Dropdown overlay={menu} disabled={uploading}>
-                <Button 
-                  type="primary" 
-                  size="small" 
-                  icon={uploading ? <LoadingOutlined /> : <PlusOutlined />}
-                  className="bg-blue-600 hover:bg-blue-700"
-                  loading={uploading}
-                />
-              </Dropdown>
+        {/* Content area - flexible height */}
+        <div className="flex flex-col">
+          <div className="mb-3" style={{ minHeight: isCurrentInput ? '120px' : 'auto' }}>
+            {isEditable && isCurrentInput ? (
+              // Editable state: show TextArea
+              <TextArea
+                value={node.content}
+                onChange={(e) => onContentChange?.(e.target.value)}
+                placeholder="Please enter your requirement description, questions or content to be processed..."
+                className="resize-none border-none"
+                style={{ 
+                  height: '120px', 
+                  minHeight: '120px',
+                  backgroundColor: 'transparent' 
+                }}
+              />
+            ) : (
+              // Read-only state: show text
+              <Paragraph className="text-base whitespace-pre-wrap mb-0">
+                {node.content || 'Please enter content...'}
+              </Paragraph>
+            )}
+          </div>
+
+          {/* Resource management section - always visible for current input */}
+          {isCurrentInput && (
+            <div className="flex-shrink-0 border-t border-gray-200 pt-3 mb-3">
+              <div className="flex items-center justify-between mb-3">
+                <Text strong className="text-sm text-gray-700">
+                  Referenced Resources ({node.resources?.length || 0})
+                </Text>
+                <Dropdown overlay={menu} disabled={uploading}>
+                  <Button 
+                    type="primary" 
+                    size="small" 
+                    icon={uploading ? <LoadingOutlined /> : <PlusOutlined />}
+                    className="bg-blue-600 hover:bg-blue-700"
+                    loading={uploading}
+                  />
+                </Dropdown>
+              </div>
+              
+              {/* Resource tags display */}
+              {node.resources && node.resources.length > 0 && (
+                <div className="max-h-20 overflow-y-auto">
+                  <Space wrap>
+                    {node.resources.map(resource => (
+                      <Tag
+                        key={resource.id}
+                        closable={!!onResourceRemove && !uploading}
+                        onClose={() => onResourceRemove?.(resource.id)}
+                        color="blue"
+                        className="mb-1"
+                      >
+                        {resource.title}
+                      </Tag>
+                    ))}
+                  </Space>
+                </div>
+              )}
             </div>
-            
-            {/* Resource tags display */}
-            {node.resources && node.resources.length > 0 && (
-              <div className="max-h-20 overflow-y-auto">
+          )}
+
+          {/* Resource tags for non-current inputs - original behavior */}
+          {!isCurrentInput && node.resources && node.resources.length > 0 && (
+            <div className="flex-shrink-0 border-t border-gray-200 pt-3">
+              <Text strong className="text-sm text-gray-700 mb-2 block">
+                Referenced Resources ({node.resources.length})
+              </Text>
+              <div className="max-h-16 overflow-y-auto">
                 <Space wrap>
                   {node.resources.map(resource => (
                     <Tag
                       key={resource.id}
-                      closable={!!onResourceRemove && !uploading}
-                      onClose={() => onResourceRemove?.(resource.id)}
                       color="blue"
                       className="mb-1"
                     >
@@ -246,56 +284,141 @@ export default function ConversationCard({
                   ))}
                 </Space>
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
 
-        {/* Resource tags for non-current inputs - original behavior */}
-        {!isCurrentInput && node.resources && node.resources.length > 0 && (
-          <div className="flex-shrink-0 border-t border-gray-200 pt-3">
-            <Text strong className="text-sm text-gray-700 mb-2 block">
-              Referenced Resources ({node.resources.length})
-            </Text>
-            <div className="max-h-16 overflow-y-auto">
-              <Space wrap>
-                {node.resources.map(resource => (
-                  <Tag
-                    key={resource.id}
-                    color="blue"
-                    className="mb-1"
-                  >
-                    {resource.title}
-                  </Tag>
-                ))}
+          {/* Agent selection area - only show for current input */}
+          {isCurrentInput && selectedAgent && (
+            <div className="flex-shrink-0 border-t border-gray-200 pt-3 mt-2">
+              <AgentSelectionCard
+                agent={selectedAgent}
+                onExecute={onExecute || (() => {})}
+                canExecute={canExecute || false}
+                isExecuting={isExecuting || false}
+                logs={executionLogs || []}
+              />
+            </div>
+          )}
+
+          {/* Status indicator */}
+          {node.status && node.status !== 'completed' && (
+            <div className="flex-shrink-0 border-t border-gray-200 pt-2 mt-2">
+              <Space>
+                <Text type="secondary" className="text-sm">
+                  Status: {node.status === 'running' ? 'Executing...' : node.status === 'error' ? 'Execution failed' : 'Waiting'}
+                </Text>
               </Space>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+      </Card>
 
-        {/* Agent selection area - only show for current input */}
-        {isCurrentInput && selectedAgent && (
-          <div className="flex-shrink-0 border-t border-gray-200 pt-3 mt-2">
-            <AgentSelectionCard
-              agent={selectedAgent}
-              onExecute={onExecute || (() => {})}
-              canExecute={canExecute || false}
-              isExecuting={isExecuting || false}
-              logs={executionLogs || []}
-            />
+      {/* Preview Modal */}
+      <Modal
+        title={`Preview - ${getTitle()}`}
+        open={previewVisible}
+        onCancel={() => setPreviewVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setPreviewVisible(false)}>
+            Close
+          </Button>
+        ]}
+        width={800}
+        className="preview-modal"
+      >
+        <div className="space-y-4">
+          {/* Content Preview */}
+          <div>
+            <Text strong className="text-base mb-2 block">Content:</Text>
+            <div className="bg-gray-50 p-4 rounded-lg border">
+              <Paragraph className="text-base whitespace-pre-wrap mb-0">
+                {node.content || 'No content available'}
+              </Paragraph>
+            </div>
           </div>
-        )}
 
-        {/* Status indicator */}
-        {node.status && node.status !== 'completed' && (
-          <div className="flex-shrink-0 border-t border-gray-200 pt-2 mt-2">
-            <Space>
-              <Text type="secondary" className="text-sm">
-                Status: {node.status === 'running' ? 'Executing...' : node.status === 'error' ? 'Execution failed' : 'Waiting'}
+          {/* Agent Info */}
+          {node.agent && (
+            <div>
+              <Text strong className="text-base mb-2 block">Agent:</Text>
+              <div className="bg-gray-50 p-4 rounded-lg border">
+                <Space align="center">
+                  <Avatar 
+                    className={node.agent.color}
+                    size="large"
+                    style={{ 
+                      backgroundColor: node.agent.color.includes('bg-') ? undefined : node.agent.color,
+                      color: 'white'
+                    }}
+                  >
+                    {node.agent.icon}
+                  </Avatar>
+                  <div>
+                    <Text strong className="text-lg">{node.agent.name}</Text>
+                    <div className="text-sm text-gray-600">{node.agent.description}</div>
+                  </div>
+                </Space>
+              </div>
+            </div>
+          )}
+
+          {/* Resources Preview */}
+          {node.resources && node.resources.length > 0 && (
+            <div>
+              <Text strong className="text-base mb-2 block">
+                Referenced Resources ({node.resources.length}):
               </Text>
-            </Space>
+              <div className="bg-gray-50 p-4 rounded-lg border">
+                <Space wrap>
+                  {node.resources.map(resource => (
+                    <Tag key={resource.id} color="blue" className="mb-1">
+                      {resource.title}
+                    </Tag>
+                  ))}
+                </Space>
+              </div>
+            </div>
+          )}
+
+          {/* Status and Logs */}
+          {node.status && (
+            <div>
+              <Text strong className="text-base mb-2 block">Status:</Text>
+              <div className="bg-gray-50 p-4 rounded-lg border">
+                <Text>
+                  {node.status === 'running' ? 'Executing...' : 
+                   node.status === 'error' ? 'Execution failed' : 
+                   node.status === 'completed' ? 'Completed' : 'Waiting'}
+                </Text>
+              </div>
+            </div>
+          )}
+
+          {/* Execution Logs */}
+          {node.logs && node.logs.length > 0 && (
+            <div>
+              <Text strong className="text-base mb-2 block">Execution Logs:</Text>
+              <div className="bg-gray-50 p-4 rounded-lg border max-h-40 overflow-y-auto">
+                {node.logs.map((log, index) => (
+                  <div key={index} className="text-sm text-gray-700 mb-1">
+                    {log}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Timestamp */}
+          <div>
+            <Text strong className="text-base mb-2 block">Timestamp:</Text>
+            <div className="bg-gray-50 p-4 rounded-lg border">
+              <Text type="secondary">
+                {node.timestamp?.toLocaleString()}
+              </Text>
+            </div>
           </div>
-        )}
-      </div>
-    </Card>
+        </div>
+      </Modal>
+    </>
   );
 } 
