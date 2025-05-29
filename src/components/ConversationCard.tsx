@@ -230,7 +230,7 @@ export default function ConversationCard({
             </div>
             
             {/* Resource tags display */}
-            {node.resources && node.resources.length > 0 ? (
+            {node.resources && node.resources.length > 0 && (
               <div className="max-h-20 overflow-y-auto">
                 <Space wrap>
                   {node.resources.map(resource => (
@@ -245,16 +245,6 @@ export default function ConversationCard({
                     </Tag>
                   ))}
                 </Space>
-              </div>
-            ) : (
-              <div className="text-center py-4 border border-dashed border-gray-300 rounded-lg bg-gray-50">
-                <Text type="secondary" className="text-sm">
-                  No resources selected
-                </Text>
-                <br />
-                <Text type="secondary" className="text-xs">
-                  Upload files or select from the left sidebar
-                </Text>
               </div>
             )}
           </div>
