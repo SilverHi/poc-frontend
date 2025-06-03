@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { InputResource, Agent, ConversationNode, CustomAgent, SaveConversationRequest } from '@/types';
+import { InputResource, Agent, ConversationNode, CustomAgent, SaveConversationRequest, ConversationMessage } from '@/types';
 import { StoredResource } from '@/lib/database';
 import InputResourceCard from '@/components/InputResourceCard';
 import AgentCard from '@/components/AgentCard';
@@ -40,6 +40,11 @@ function App() {
   const [selectedResources, setSelectedResources] = useState<InputResource[]>([]);
   const [userInput, setUserInput] = useState('');
   const [conversationNodes, setConversationNodes] = useState<ConversationNode[]>([]);
+  
+  // 调试：监控conversationNodes变化
+  useEffect(() => {
+    console.log('🎯 ConversationNodes state changed:', conversationNodes);
+  }, [conversationNodes]);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionLogs, setExecutionLogs] = useState<string[]>([]);
@@ -73,7 +78,8 @@ function App() {
 
   // Initialize first input node
   useEffect(() => {
-    if (conversationNodes.length === 0) {
+    if (conversationNodes.length === 0 && !currentConversationId) {
+      console.log('🔄 Initializing first input node');
       const initialInputNode: ConversationNode = {
         id: `input-initial`,
         type: 'input',
@@ -85,7 +91,7 @@ function App() {
       };
       setConversationNodes([initialInputNode]);
     }
-  }, []);
+  }, [conversationNodes.length, currentConversationId]);
 
   // Filter resources based on search query
   useEffect(() => {
@@ -193,137 +199,131 @@ function App() {
 
     setIsExecuting(true);
     setExecutionLogs([]);
-    
-    // Get current input node content and save it for later use
+
+    // 获取当前输入内容
     const currentInputNode = conversationNodes.find(node => node.isCurrentInput);
     const inputContent = currentInputNode ? getInputContent() : userInput;
-    
-    // Save the input node information for auto-save later
-    let inputNodeForSaving: ConversationNode;
-    
-    // If no current input node, create the first input node
-    if (!currentInputNode) {
-      inputNodeForSaving = {
-        id: `input-${Date.now()}`,
-        type: 'input',
-        content: userInput,
-        resources: [...selectedResources],
-        timestamp: new Date(),
-        isCurrentInput: false,
-        isEditable: false
-      };
-      setConversationNodes(prev => [...prev, inputNodeForSaving]);
-    } else {
-      // Save the current input node as history input node for saving
-      inputNodeForSaving = {
-        ...currentInputNode,
-        type: 'input',
-        isCurrentInput: false,
-        isEditable: false
-      };
-      
-      // Convert current node to input type and mark as history
-      setConversationNodes(prev => prev.map(node => 
-        node.isCurrentInput 
-          ? { 
-              ...node, 
-              type: 'input', // Convert output to input
-              isCurrentInput: false, 
-              isEditable: false 
-            }
-          : node
-      ));
+    let conversationId = currentConversationId;
+    const sortBase = conversationNodes.length;
+    const now = new Date();
+
+    // 如果没有会话ID，先创建会话
+    if (!conversationId) {
+      const title = inputContent.length > 50 ? inputContent.substring(0, 50) + '...' : inputContent;
+      const conversationSummary = await apiService.saveConversation({
+        title: title,
+        messages: []
+      });
+      conversationId = conversationSummary.id;
+      setCurrentConversationId(conversationId);
     }
 
-    // Create bubble node for processing
-    const bubbleNode: ConversationNode = {
+    // 1. 保存query消息
+    const queryMsgData = {
+      conversation_id: conversationId,
+      node_type: 'query' as const,
+      content: inputContent,
+      sort: sortBase,
+      agent_id: selectedAgent.id,
+    };
+    const queryMsg = await apiService.createConversationMessage(queryMsgData);
+
+    // 2. 保存log消息（记录agent执行信息） - 这个log将在UI中显示为bubble
+    const logMsgData = {
+      conversation_id: conversationId,
+      node_type: 'log' as const,
+      content: `Agent execution started: ${selectedAgent.name}`,
+      sort: sortBase + 1,
+      agent_id: selectedAgent.id,
+    };
+    const logMsg = await apiService.createConversationMessage(logMsgData);
+
+    // 创建agent处理节点
+    const bubbleNode = {
       id: `bubble-${Date.now()}`,
-      type: 'bubble',
+      type: 'bubble' as const,
       content: `Using ${selectedAgent.name} to process...`,
       agent: selectedAgent,
-      status: 'running',
+      status: 'running' as const,
       logs: [],
       timestamp: new Date()
     };
     
-    setConversationNodes(prev => [...prev, bubbleNode]);
+    // UI同步：将当前input设为不可编辑，并添加agent处理节点
+    setConversationNodes(prev => {
+      const updatedNodes = prev.map(node => 
+        node.isCurrentInput 
+          ? { 
+              ...node, 
+              isCurrentInput: false, 
+              isEditable: false,
+              agent: selectedAgent,
+              content: inputContent
+            }
+          : node
+      );
+      
+      return [...updatedNodes, bubbleNode];
+    });
+    
     const currentAgent = selectedAgent;
     setSelectedAgent(null);
 
     try {
-      // Simulate log updates during execution
-      const logs = [
-        `Starting ${currentAgent.name}...`,
-        'Analyzing input content...',
-        'Applying processing logic...',
-        'Generating output result...'
-      ];
-      
-      for (let i = 0; i < logs.length; i++) {
-        await new Promise(resolve => setTimeout(resolve, 800));
-        setExecutionLogs(prev => [...prev, logs[i]]);
-        setConversationNodes(prev => prev.map(node => 
-          node.id === bubbleNode.id 
-            ? { ...node, logs: logs.slice(0, i + 1) }
-            : node
-        ));
-      }
+      const result = await executeCustomAgent(currentAgent.id, inputContent);
 
-      let result;
-      
-      // All agents now execute via API
-      result = await executeCustomAgent(currentAgent.id, inputContent);
-
-      // Update bubble node to completed
-      setConversationNodes(prev => prev.map(node => 
-        node.id === bubbleNode.id 
-          ? { ...node, status: 'completed', content: 'Processing completed', logs: result.logs }
-          : node
-      ));
-
-      // Create output node (becomes current input for next round)
-      const outputNode: ConversationNode = {
-        id: `output-${Date.now()}`,
-        type: 'output',
+      // 3. 保存answer消息
+      const answerMsgData = {
+        conversation_id: conversationId,
+        node_type: 'answer' as const,
         content: result.output,
-        agent: currentAgent,
-        status: 'completed',
-        timestamp: new Date(),
-        isCurrentInput: true, // Output becomes current input for next round
-        isEditable: true
+        sort: sortBase + 2, // query=sortBase, log=sortBase+1, answer=sortBase+2
+        agent_id: currentAgent.id,
       };
-      
-      setConversationNodes(prev => [...prev, outputNode]);
+      const answerMsg = await apiService.createConversationMessage(answerMsgData);
 
-      // Update userInput to output content, prepare for next round
+      // 4. 更新log消息，记录执行结果
+      const logUpdateMsgData = {
+        conversation_id: conversationId,
+        node_type: 'log' as const,
+        content: `Agent execution completed: ${currentAgent.name}. Execution logs: ${result.logs.join('; ')}`,
+        sort: sortBase + 3,
+        agent_id: currentAgent.id,
+      };
+      await apiService.createConversationMessage(logUpdateMsgData);
+
+      // UI同步：更新bubble节点状态并添加output节点
+      setConversationNodes(prev => [
+        ...prev.map(node => 
+          node.id === bubbleNode.id 
+            ? { 
+                ...node, 
+                status: 'completed' as const,
+                content: `${currentAgent.name} processing completed`,
+                logs: result.logs
+              }
+            : node
+        ),
+        {
+          id: (answerMsg as any).id,
+          type: 'output' as const,
+          content: result.output,
+          agent: currentAgent,
+          status: 'completed',
+          timestamp: new Date(),
+          isCurrentInput: true,
+          isEditable: true
+        }
+      ]);
       setUserInput(result.output);
       setSelectedResources([]);
-      
-      // Auto-save conversation after successful execution
-      try {
-        // Build complete nodes array for saving using the saved input node
-        // Get all existing history nodes (excluding any current input)
-        const historyNodes = conversationNodes.filter(node => !node.isCurrentInput && node.type !== 'bubble');
-        
-        // Build the complete conversation: history + input + bubble + output
-        const updatedBubbleNode = { ...bubbleNode, status: 'completed' as const, content: 'Processing completed', logs: result.logs };
-        const allNodes = [...historyNodes, inputNodeForSaving, updatedBubbleNode, outputNode];
-        
-        console.log('🔍 Nodes to save:', allNodes.map(n => ({ id: n.id, type: n.type, content: n.content.substring(0, 50) })));
-        
-        await autoSaveConversation(allNodes);
-      } catch (saveError) {
-        console.error('Auto-save failed:', saveError);
-        // Don't show error to user for auto-save failures
-      }
-      
+      if (!currentConversationId) setCurrentConversationId(conversationId);
     } catch (error) {
-      // Update bubble node to error
-      setConversationNodes(prev => prev.map(node => 
-        node.id === bubbleNode.id 
-          ? { 
-              ...node, 
-              status: 'error', 
+      setConversationNodes(prev => prev.map(node =>
+        node.id === bubbleNode.id
+          ? {
+              ...node,
+              status: 'error',
               content: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
             }
           : node
@@ -365,14 +365,18 @@ function App() {
     const timestamp = new Date().toLocaleString();
     title = `${title} - ${timestamp}`;
     
+    // Convert nodes to messages format
+    const messages = nodes.map((node, index) => ({
+      conversation_id: '', // Will be set by backend
+      node_type: node.type === 'input' ? 'query' : 'answer' as 'query' | 'answer' | 'log',
+      content: node.content,
+      sort: index,
+      agent_id: node.agent?.id || null,
+    }));
+
     const request: SaveConversationRequest = {
       title: title,
-      conversation_nodes: nodes.map(node => ({
-        ...node,
-        agentId: node.agent?.id,
-        agentName: node.agent?.name,
-        executionLogs: node.logs
-      }))
+      messages: messages
     };
 
     const savedConversation = await apiService.saveConversation(request);
@@ -529,7 +533,7 @@ function App() {
       // Create output node (becomes current input for next round)
       const outputNode: ConversationNode = {
         id: `output-${Date.now()}`,
-        type: 'output',
+        type: 'output' as const,
         content: result.output,
         agent: agent,
         status: 'completed',
@@ -605,14 +609,18 @@ function App() {
     }
 
     try {
+      // Convert nodes to messages format
+      const messages = conversationNodes.map((node, index) => ({
+        conversation_id: '', // Will be set by backend
+        node_type: node.type === 'input' ? 'query' : 'answer' as 'query' | 'answer' | 'log',
+        content: node.content,
+        sort: index,
+        agent_id: node.agent?.id || null,
+      }));
+
       const request: SaveConversationRequest = {
         title: conversationTitle,
-        conversation_nodes: conversationNodes.map(node => ({
-          ...node,
-          agentId: node.agent?.id,
-          agentName: node.agent?.name,
-          executionLogs: node.logs
-        }))
+        messages: messages
       };
 
       const savedConversation = await apiService.saveConversation(request);
@@ -633,56 +641,180 @@ function App() {
 
   const handleConversationSelect = async (conversationId: string) => {
     try {
-      const response = await apiService.getConversationNodes(conversationId);
-      const nodes = response.nodes;
+      console.log('🔍 Loading conversation:', conversationId);
+      const conversation = await apiService.getConversation(conversationId);
+      console.log('📦 Raw conversation data:', conversation);
       
-      if (nodes && nodes.length > 0) {
-        // Convert backend nodes to frontend format
-        const convertedNodes: ConversationNode[] = nodes.map(node => ({
-          id: node.id,
-          type: node.type,
-          content: node.content,
-          timestamp: new Date(node.timestamp),
-          isCurrentInput: node.isCurrentInput,
-          isEditable: node.isEditable,
-          resources: node.resources || [],
-          agent: node.agentId ? {
-            id: node.agentId,
-            name: node.agentName || 'Unknown Agent',
-            description: '',
-            icon: '🤖',
-            category: 'analysis' as const,
-            color: '#1890ff'
-          } : undefined,
-          logs: node.executionLogs || [],
-          status: node.type === 'output' ? 'completed' as const : undefined
-        }));
-
-        // Set the last node as current input if it's editable
-        const lastNode = convertedNodes[convertedNodes.length - 1];
-        if (lastNode && lastNode.isEditable) {
-          convertedNodes.forEach(node => {
-            node.isCurrentInput = node.id === lastNode.id;
-          });
-        } else {
-          // If no editable node, create a new input node
-          const newInputNode: ConversationNode = {
-            id: `input-${Date.now()}`,
-            type: 'input',
-            content: '',
-            resources: [],
-            timestamp: new Date(),
-            isCurrentInput: true,
-            isEditable: true
-          };
-          convertedNodes.push(newInputNode);
+      if (conversation && conversation.messages.length > 0) {
+        console.log('📝 Original messages count:', conversation.messages.length);
+        console.log('📝 Original messages:', conversation.messages);
+        
+        // 首先按sort字段排序消息
+        const sortedMessages = conversation.messages.sort((a, b) => a.sort - b.sort);
+        console.log('🔄 Sorted messages:', sortedMessages);
+        console.log('📊 Message order detail:');
+        sortedMessages.forEach((msg, idx) => {
+          console.log(`  ${idx}: sort=${msg.sort}, type=${msg.node_type}, agent=${msg.agent_id}, content=${msg.content.substring(0, 50)}...`);
+        });
+        
+        // 找到最后一个answer的索引
+        let lastAnswerIdx = -1;
+        for (let i = sortedMessages.length - 1; i >= 0; i--) {
+          if (sortedMessages[i].node_type === 'answer') {
+            lastAnswerIdx = i;
+            console.log('✅ Found last answer at index:', i, 'message:', sortedMessages[i]);
+            break;
+          }
         }
-
+        console.log('📍 Last answer index:', lastAnswerIdx);
+        
+        let displayMessages: typeof sortedMessages = [];
+        
+        if (lastAnswerIdx === -1) {
+          console.log('⚠️ No answer found, showing all non-log messages');
+          // 没有answer，显示所有非log消息
+          displayMessages = sortedMessages.filter(msg => msg.node_type !== 'log');
+          console.log('📋 Display messages (no answer):', displayMessages);
+        } else {
+          console.log('✅ Found answers, applying display rules...');
+          // 有answer，应用显示规则：
+          // 1. 显示所有query
+          // 2. 隐藏中间的answer，只显示最后一个answer
+          // 3. 只显示completion log（隐藏start log），bubble需要在answer前显示
+          
+          // 找到最后answer对应的agent_id和sort基准
+          const lastAnswerMsg = sortedMessages[lastAnswerIdx];
+          const lastAnswerSort = lastAnswerMsg.sort;
+          
+          // 收集需要显示的消息
+          const messagesToShow: typeof sortedMessages = [];
+          
+          sortedMessages.forEach((msg, index) => {
+            if (msg.node_type === 'query') {
+              console.log(`✅ Adding query at index ${index}:`, msg);
+              messagesToShow.push(msg);
+            } else if (msg.node_type === 'answer' && index === lastAnswerIdx) {
+              console.log(`✅ Adding last answer at index ${index}:`, msg);
+              messagesToShow.push(msg);
+            } else if (msg.node_type === 'log' && msg.content.includes('Agent execution completed')) {
+              // 显示所有completion log，隐藏所有start log
+              console.log(`✅ Adding completion log at index ${index}:`, msg);
+              messagesToShow.push(msg);
+            } else {
+              console.log(`❌ Skipping message at index ${index}:`, msg.node_type, msg.content.substring(0, 30));
+            }
+          });
+          
+          // 重新排序：按原始顺序交错排列，确保每个completion log在正确位置
+          const finalMessages: typeof sortedMessages = [];
+          const queryMessages = messagesToShow.filter(m => m.node_type === 'query');
+          const answerMessages = messagesToShow.filter(m => m.node_type === 'answer');  // 只有最后一个
+          const logMessages = messagesToShow.filter(m => m.node_type === 'log');        // 所有completion logs
+          
+          console.log('🔄 Reordering messages for display:');
+          console.log('📝 Queries:', queryMessages.length);
+          console.log('📝 Answers:', answerMessages.length);  
+          console.log('📝 Logs:', logMessages.length);
+          
+          // 合并所有消息并按sort排序，但调整completion log的位置
+          const allMessagesToSort = [...queryMessages, ...answerMessages];
+          
+          // 为每个completion log找到它应该插入的位置（在对应answer前）
+          logMessages.forEach(logMsg => {
+            // 找到这个log对应的answer（同agent_id且sort值接近）
+            const correspondingAnswer = sortedMessages.find(msg => 
+              msg.node_type === 'answer' && 
+              msg.agent_id === logMsg.agent_id && 
+              msg.sort < logMsg.sort &&
+              msg.sort + 2 >= logMsg.sort  // log通常是answer的sort+1
+            );
+            
+            if (correspondingAnswer) {
+              // 将log的sort设为对应answer的sort-0.5，确保它在answer前显示
+              const modifiedLog = { ...logMsg, sort: correspondingAnswer.sort - 0.5 };
+              console.log(`✅ Positioning completion log: original_sort=${logMsg.sort}, new_sort=${modifiedLog.sort}, for answer_sort=${correspondingAnswer.sort}`);
+              allMessagesToSort.push(modifiedLog);
+            } else {
+              // 如果找不到对应的answer，保持原sort
+              console.log(`⚠️ No corresponding answer found for log: sort=${logMsg.sort}, keeping original position`);
+              allMessagesToSort.push(logMsg);
+            }
+          });
+          
+          // 按sort排序
+          displayMessages = allMessagesToSort.sort((a, b) => a.sort - b.sort);
+          
+          console.log('📋 Display messages (filtered):', displayMessages);
+          console.log('📋 Filtered message order detail:');
+          displayMessages.forEach((msg, idx) => {
+            console.log(`  ${idx}: sort=${msg.sort}, type=${msg.node_type}, agent=${msg.agent_id}, content=${msg.content.substring(0, 30)}...`);
+          });
+        }
+        
+        // 转换为ConversationNode格式
+        console.log('🔄 Converting to ConversationNode format...');
+        console.log('🤖 All agents available:', allAgents);
+        
+        const convertedNodes: ConversationNode[] = displayMessages.map((msg, index) => {
+          const agent = allAgents.find(a => a.id === msg.agent_id);
+          
+          let nodeType: ConversationNode['type'];
+          let status: ConversationNode['status'] = 'completed';
+          
+          if (msg.node_type === 'query') {
+            nodeType = 'input';
+          } else if (msg.node_type === 'answer') {
+            nodeType = 'output';
+          } else if (msg.node_type === 'log') {
+            nodeType = 'bubble';
+            status = 'completed';
+          } else {
+            nodeType = 'input'; // fallback
+          }
+          
+          console.log(`📝 Converting message ${index}:`, {
+            original: msg,
+            agent_found: agent,
+            type: nodeType,
+            status: status
+          });
+          
+          return {
+            id: msg.id,
+            type: nodeType,
+            content: msg.content,
+            timestamp: new Date(msg.created_at),
+            isCurrentInput: false,
+            isEditable: false,
+            agent: agent,
+            status: status,
+            logs: msg.node_type === 'log' ? [msg.content] : undefined
+          };
+        });
+        
+        console.log('🎯 Converted nodes before modification:', convertedNodes);
+        
+        // 找到最后一个output节点，设置为可编辑并为当前输入
+        for (let i = convertedNodes.length - 1; i >= 0; i--) {
+          const node = convertedNodes[i];
+          if (node.type === 'output') {
+            console.log('🔚 Found last output node at index', i, ':', node);
+            node.isCurrentInput = true;
+            node.isEditable = true;
+            console.log('✅ Set last output node as current input');
+            break;
+          }
+        }
+        
+        console.log('🎯 Final converted nodes:', convertedNodes);
+        
         setConversationNodes(convertedNodes);
         setCurrentConversationId(conversationId);
         setSelectedResources([]);
         setUserInput('');
         setSelectedAgent(null);
+        console.log('💾 State updated successfully');
+        
         message.success('Conversation loaded successfully');
       }
     } catch (error) {

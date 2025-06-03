@@ -96,14 +96,10 @@ export interface ConversationSummary {
 export interface ConversationMessage {
   id: string;
   conversation_id: string;
-  node_type: string;
+  node_type: 'query' | 'answer' | 'log';
   content: string;
-  agent_id?: string;
-  agent_name?: string;
-  resources?: string;
-  execution_logs?: string;
-  is_current_input: boolean;
-  is_editable: boolean;
+  sort: number;
+  agent_id: string;
   created_at: string;
 }
 
@@ -115,7 +111,15 @@ export interface Conversation {
   messages: ConversationMessage[];
 }
 
+export interface ConversationMessageCreate {
+  conversation_id: string;
+  node_type: 'query' | 'answer' | 'log';
+  content: string;
+  sort: number;
+  agent_id: string | null;
+}
+
 export interface SaveConversationRequest {
   title: string;
-  conversation_nodes: ConversationNode[];
+  messages: ConversationMessageCreate[];
 } 

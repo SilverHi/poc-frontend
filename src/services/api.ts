@@ -1,4 +1,4 @@
-import { StoredResource, CustomAgent, ConversationSummary, Conversation, SaveConversationRequest } from '@/types';
+import { StoredResource, CustomAgent, ConversationSummary, Conversation, SaveConversationRequest, ConversationMessage, ConversationMessageCreate } from '@/types';
 
 const API_BASE_URL = 'http://localhost:8000/api/v1';
 
@@ -142,8 +142,8 @@ class ApiClient {
     return this.request(`/conversations/${conversationId}`);
   }
 
-  async saveConversation(request: SaveConversationRequest): Promise<Conversation> {
-    return this.request('/conversations/save', {
+  async saveConversation(request: SaveConversationRequest): Promise<ConversationSummary> {
+    return this.request('/conversations', {
       method: 'POST',
       body: JSON.stringify(request),
     });
@@ -155,8 +155,23 @@ class ApiClient {
     });
   }
 
-  async getConversationNodes(conversationId: string): Promise<{ nodes: any[] }> {
-    return this.request(`/conversations/${conversationId}/nodes`);
+  async getConversationMessages(conversationId: string): Promise<ConversationMessage[]> {
+    return this.request(`/conversations/messages/${conversationId}`);
+  }
+
+  // ConversationMessage APIs
+  async saveConversationMessage(message: ConversationMessage | ConversationMessageCreate): Promise<ConversationMessage> {
+    return this.request('/conversations/messages', {
+      method: 'POST',
+      body: JSON.stringify(message),
+    });
+  }
+
+  async saveConversationMessages(messages: ConversationMessage[]) {
+    return this.request('/conversations/messages/batch', {
+      method: 'POST',
+      body: JSON.stringify(messages),
+    });
   }
 }
 
@@ -242,7 +257,20 @@ export const apiService = {
     return apiClient.deleteConversation(conversationId);
   },
 
-  async getConversationNodes(conversationId: string) {
-    return apiClient.getConversationNodes(conversationId);
+  async getConversationMessages(conversationId: string) {
+    return apiClient.getConversationMessages(conversationId);
+  },
+
+  async saveConversationMessage(message: ConversationMessage) {
+    return apiClient.saveConversationMessage(message);
+  },
+
+  async saveConversationMessages(messages: ConversationMessage[]) {
+    return apiClient.saveConversationMessages(messages);
+  },
+
+  // Create a single conversation message
+  async createConversationMessage(messageData: ConversationMessageCreate): Promise<ConversationMessage> {
+    return apiClient.saveConversationMessage(messageData as ConversationMessage);
   }
 }; 
