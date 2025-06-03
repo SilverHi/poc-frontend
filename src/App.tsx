@@ -911,7 +911,7 @@ function App() {
                 }
               />
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-1">
                 {filteredStoredResources.map(resource => {
                   const inputResource: InputResource = {
                     id: resource.id,
@@ -937,7 +937,7 @@ function App() {
         {/* Center - Main Workspace */}
         <Content className="flex flex-col bg-gray-50">
           {/* Complete conversation chain sliding window */}
-          <div className="flex-1 h-full">
+          <div className="flex-1 h-full px-4 py-4">
             <ConversationChain
               nodes={conversationNodes}
               onResourceRemove={handleResourceRemove}
@@ -966,8 +966,8 @@ function App() {
           <div className="flex-1 overflow-y-auto p-4">
             {/* All Agents */}
             <div className="mb-4">
-              <Text strong className="text-sm text-gray-700 mb-2 block">AI Agents</Text>
-              <div className="space-y-2">
+              <Text strong className="text-sm text-gray-700 mb-3 block">AI Agents</Text>
+              <div className="space-y-1">
                 {allAgents.map(agent => (
                   <AgentCard
                     key={agent.id}

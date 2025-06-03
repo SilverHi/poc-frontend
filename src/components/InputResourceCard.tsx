@@ -34,7 +34,7 @@ export default function InputResourceCard({ resource, isSelected, onSelect }: In
   return (
     <Card
       hoverable
-      className={`mb-3 cursor-pointer transition-all duration-200 ${
+      className={`mb-4 cursor-pointer transition-all duration-200 ${
         isSelected 
           ? 'border-blue-500 shadow-md' 
           : ''
@@ -46,19 +46,19 @@ export default function InputResourceCard({ resource, isSelected, onSelect }: In
         backgroundColor: isSelected ? '#f0f8ff' : undefined,
       }}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-3 p-1">
         <div className="text-2xl text-gray-600">
           {getTypeIcon(resource.type)}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-3">
             <h3 className="font-medium text-gray-900 truncate text-sm">{resource.title}</h3>
             <Tag color={getTypeColor(resource.type)}>
               {resource.type}
             </Tag>
           </div>
           {resource.description && (
-            <p className="text-xs text-gray-600 mb-2">{resource.description}</p>
+            <p className="text-xs text-gray-600 mb-3">{resource.description}</p>
           )}
           <Paragraph 
             ellipsis={{ rows: 2, expandable: false }} 

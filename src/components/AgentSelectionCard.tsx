@@ -23,7 +23,7 @@ export default function AgentSelectionCard({
   return (
     <Card className="bg-blue-50 border-blue-200 mt-4">
       <Space className="w-full justify-between" align="center">
-        <Space align="center">
+        <Space align="center" size="large">
           <Avatar 
             className={agent.color}
             size="large"
@@ -36,7 +36,7 @@ export default function AgentSelectionCard({
           </Avatar>
           <div>
             <Text strong className="text-gray-900">{agent.name}</Text>
-            <div className="text-sm text-gray-600">{agent.description}</div>
+            <div className="text-sm text-gray-600 mt-1">{agent.description}</div>
           </div>
         </Space>
         <Button
@@ -53,11 +53,11 @@ export default function AgentSelectionCard({
 
       {/* Execution logs */}
       {isExecuting && logs.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-blue-300">
-          <Text strong className="text-sm text-gray-700 mb-2 block">
+        <div className="mt-6 pt-4 border-t border-blue-300">
+          <Text strong className="text-sm text-gray-700 mb-3 block">
             Execution Logs
           </Text>
-          <div className="bg-black text-green-400 font-mono text-xs p-3 rounded max-h-32 overflow-y-auto">
+          <div className="bg-black text-green-400 font-mono text-xs p-4 rounded max-h-32 overflow-y-auto">
             {logs.map((log, index) => (
               <div key={index} className="mb-1">
                 <span className="text-gray-500">[{new Date().toLocaleTimeString()}]</span> {log}

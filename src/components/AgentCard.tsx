@@ -31,11 +31,11 @@ export default function AgentCard({ agent, onSelect, disabled = false }: AgentCa
   return (
     <Card
       hoverable={!disabled}
-      className={`mb-2 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+      className={`mb-4 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
       onClick={() => !disabled && onSelect(agent)}
       size="small"
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-3 p-1">
         <Avatar 
           className={agent.color}
           size="large"
@@ -47,13 +47,13 @@ export default function AgentCard({ agent, onSelect, disabled = false }: AgentCa
           {agent.icon}
         </Avatar>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-2">
             <h3 className="font-medium text-gray-900 text-sm">{agent.name}</h3>
             <Tag color={getCategoryColor(agent.category)}>
               {getCategoryLabel(agent.category)}
             </Tag>
           </div>
-          <p className="text-xs text-gray-600">{agent.description}</p>
+          <p className="text-xs text-gray-600 mb-0">{agent.description}</p>
         </div>
       </div>
     </Card>

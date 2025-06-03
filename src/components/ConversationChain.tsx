@@ -51,38 +51,41 @@ export default function ConversationChain({
   const renderNode = (node: ConversationNode, index: number) => {
     if (node.type === 'input' || node.type === 'output') {
       return (
-        <ConversationCard
-          key={node.id}
-          node={node}
-          onResourceRemove={
-            node.isCurrentInput && onResourceRemove 
-              ? (resourceId: string) => onResourceRemove(node.id, resourceId)
-              : undefined
-          }
-          onResourceAdd={
-            node.isCurrentInput && onResourceAdd
-              ? (resource: InputResource) => onResourceAdd(node.id, resource)
-              : undefined
-          }
-          onQuickUpload={node.isCurrentInput ? onQuickUpload : undefined}
-          onRetry={onRetry ? () => onRetry(node.id) : undefined}
-          onContentChange={
-            node.isCurrentInput && onContentChange
-              ? (content: string) => onContentChange(node.id, content)
-              : undefined
-          }
-          className="shadow-sm hover:shadow-md transition-shadow duration-200"
-          // Agent related props - only pass when current input
-          selectedAgent={node.isCurrentInput ? selectedAgent : undefined}
-          onExecute={node.isCurrentInput ? onExecute : undefined}
-          canExecute={node.isCurrentInput ? canExecute : undefined}
-          isExecuting={node.isCurrentInput ? isExecuting : undefined}
-          executionLogs={node.isCurrentInput ? executionLogs : undefined}
-        />
+        <div key={node.id} className="mb-6">
+          <ConversationCard
+            node={node}
+            onResourceRemove={
+              node.isCurrentInput && onResourceRemove 
+                ? (resourceId: string) => onResourceRemove(node.id, resourceId)
+                : undefined
+            }
+            onResourceAdd={
+              node.isCurrentInput && onResourceAdd
+                ? (resource: InputResource) => onResourceAdd(node.id, resource)
+                : undefined
+            }
+            onQuickUpload={node.isCurrentInput ? onQuickUpload : undefined}
+            onRetry={onRetry ? () => onRetry(node.id) : undefined}
+            onContentChange={
+              node.isCurrentInput && onContentChange
+                ? (content: string) => onContentChange(node.id, content)
+                : undefined
+            }
+            className="shadow-sm hover:shadow-md transition-shadow duration-200"
+            // Agent related props - only pass when current input
+            selectedAgent={node.isCurrentInput ? selectedAgent : undefined}
+            onExecute={node.isCurrentInput ? onExecute : undefined}
+            canExecute={node.isCurrentInput ? canExecute : undefined}
+            isExecuting={node.isCurrentInput ? isExecuting : undefined}
+            executionLogs={node.isCurrentInput ? executionLogs : undefined}
+          />
+        </div>
       );
-    } else if (node.type === 'bubble') {
+    }
+
+    if (node.type === 'bubble') {
       return (
-        <div key={node.id} className="flex justify-center">
+        <div key={node.id} className="flex justify-center my-6">
           <BubbleMessage
             node={node}
             onClick={() => onBubbleClick?.(node.id)}
@@ -91,40 +94,18 @@ export default function ConversationChain({
         </div>
       );
     }
-    
+
     return null;
   };
 
   return (
     <div 
       ref={scrollRef}
-      className="h-full overflow-y-auto overflow-x-hidden"
-      style={{ 
-        scrollBehavior: 'smooth',
-        maxHeight: 'calc(100vh - 80px)' // Subtract header height
-      }}
+      className="h-full overflow-y-auto px-2 py-4"
+      style={{ scrollBehavior: 'smooth' }}
     >
-      <div className="min-h-full px-6 py-4">
-        <div className="max-w-4xl mx-auto space-y-6">
-          {/* Conversation nodes - waterfall layout */}
-          {nodes.length > 0 ? (
-            <div className="space-y-4">
-              {nodes.map((node, index) => renderNode(node, index))}
-            </div>
-          ) : (
-            /* Empty state prompt */
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center text-gray-500">
-                <Text className="text-lg">Start your first conversation</Text>
-                <br />
-                <Text type="secondary">Select resources on the left and Agent on the right to start conversation</Text>
-              </div>
-            </div>
-          )}
-          
-          {/* Bottom spacing to ensure last element doesn't stick to bottom */}
-          <div className="h-6"></div>
-        </div>
+      <div className="max-w-4xl mx-auto space-y-1">
+        {nodes.map((node, index) => renderNode(node, index))}
       </div>
     </div>
   );

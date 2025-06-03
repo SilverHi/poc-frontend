@@ -6,7 +6,8 @@ import {
   CheckCircleOutlined, 
   CloseCircleOutlined,
   ClockCircleOutlined,
-  ReloadOutlined 
+  ReloadOutlined,
+  ExclamationCircleOutlined
 } from '@ant-design/icons';
 
 const { Text } = Typography;
@@ -18,31 +19,34 @@ interface BubbleMessageProps {
 }
 
 export default function BubbleMessage({ node, onClick, onRetry }: BubbleMessageProps) {
+  const isCompleted = node.status === 'completed';
+  const isRunning = node.status === 'running';
+  const isError = node.status === 'error';
+
+  const getStatusColor = (status?: string) => {
+    switch (status) {
+      case 'completed': return 'bg-green-500 hover:bg-green-600';
+      case 'running': return 'bg-blue-500 hover:bg-blue-600 animate-pulse';
+      case 'error': return 'bg-red-500 hover:bg-red-600';
+      default: return 'bg-gray-500 hover:bg-gray-600';
+    }
+  };
+
   const getStatusIcon = (status?: string) => {
     switch (status) {
-      case 'running': return <LoadingOutlined spin className="text-white" />;
       case 'completed': return <CheckCircleOutlined className="text-white" />;
-      case 'error': return <CloseCircleOutlined className="text-white" />;
+      case 'running': return <LoadingOutlined className="text-white" />;
+      case 'error': return <ExclamationCircleOutlined className="text-white" />;
       default: return <ClockCircleOutlined className="text-white" />;
     }
   };
 
-  const getStatusColor = (status?: string) => {
-    switch (status) {
-      case 'running': return 'bg-blue-500';
-      case 'completed': return 'bg-green-500';
-      case 'error': return 'bg-red-500';
-      default: return 'bg-gray-400';
-    }
-  };
-
-  const getPreviewContent = (content: string, maxLength: number = 30) => {
-    if (content.length <= maxLength) return content;
-    return content.substring(0, maxLength) + '...';
+  const getPreviewContent = (content: string) => {
+    return content.length > 30 ? content.substring(0, 30) + '...' : content;
   };
 
   return (
-    <div className="flex flex-col items-center space-y-2">
+    <div className="flex flex-col items-center space-y-3">
       <Tooltip 
         title={
           <div>
@@ -60,7 +64,7 @@ export default function BubbleMessage({ node, onClick, onRetry }: BubbleMessageP
       >
         <div 
           className={`
-            inline-flex items-center space-x-2 px-4 py-2 rounded-full cursor-pointer
+            inline-flex items-center space-x-3 px-5 py-3 rounded-full cursor-pointer
             transition-all duration-200 hover:scale-105 hover:shadow-lg
             ${getStatusColor(node.status)}
             shadow-sm max-w-sm

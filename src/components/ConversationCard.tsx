@@ -159,12 +159,13 @@ export default function ConversationCard({
     <>
       <Card 
         className={`w-full ${className || ''} ${getCardStyle()}`}
-        style={{ minHeight: isCurrentInput ? '40vh' : '33vh' }} // Changed to minHeight for auto expansion
+        style={{ minHeight: isCurrentInput ? '40vh' : '33vh' }}
+        bodyStyle={{ padding: '20px' }}
       >
         {/* Card header - fixed height */}
-        <div className="mb-3 flex-shrink-0">
+        <div className="mb-4 flex-shrink-0">
           <Space align="center" className="w-full justify-between">
-            <Space align="center">
+            <Space align="center" size="large">
               {node.agent && (
                 <Avatar 
                   className={node.agent.color}
@@ -182,10 +183,10 @@ export default function ConversationCard({
                   {getTitle()}
                 </Text>
                 {node.agent && (
-                  <div className="text-sm text-gray-600">{node.agent.name}</div>
+                  <div className="text-sm text-gray-600 mt-1">{node.agent.name}</div>
                 )}
                 {isCurrentInput && (
-                  <div className="text-xs text-blue-600">Editable</div>
+                  <div className="text-xs text-blue-600 mt-1">Editable</div>
                 )}
               </div>
             </Space>
@@ -206,7 +207,7 @@ export default function ConversationCard({
 
         {/* Content area - flexible height */}
         <div className="flex flex-col">
-          <div className="mb-3" style={{ minHeight: isCurrentInput ? '120px' : 'auto' }}>
+          <div className="mb-4" style={{ minHeight: isCurrentInput ? '120px' : 'auto' }}>
             {isEditable && isCurrentInput ? (
               // Editable state: show TextArea
               <TextArea
@@ -230,8 +231,8 @@ export default function ConversationCard({
 
           {/* Resource management section - always visible for current input */}
           {isCurrentInput && (
-            <div className="flex-shrink-0 border-t border-gray-200 pt-3 mb-3">
-              <div className="flex items-center justify-between mb-3">
+            <div className="flex-shrink-0 border-t border-gray-200 pt-4 mb-4">
+              <div className="flex items-center justify-between mb-4">
                 <Text strong className="text-sm text-gray-700">
                   Referenced Resources ({node.resources?.length || 0})
                 </Text>
@@ -269,8 +270,8 @@ export default function ConversationCard({
 
           {/* Resource tags for non-current inputs - original behavior */}
           {!isCurrentInput && node.resources && node.resources.length > 0 && (
-            <div className="flex-shrink-0 border-t border-gray-200 pt-3">
-              <Text strong className="text-sm text-gray-700 mb-2 block">
+            <div className="flex-shrink-0 border-t border-gray-200 pt-4">
+              <Text strong className="text-sm text-gray-700 mb-3 block">
                 Referenced Resources ({node.resources.length})
               </Text>
               <div className="max-h-16 overflow-y-auto">
@@ -291,7 +292,7 @@ export default function ConversationCard({
 
           {/* Agent selection area - only show for current input */}
           {isCurrentInput && selectedAgent && (
-            <div className="flex-shrink-0 border-t border-gray-200 pt-3 mt-2">
+            <div className="flex-shrink-0 border-t border-gray-200 pt-4 mt-3">
               <AgentSelectionCard
                 agent={selectedAgent}
                 onExecute={onExecute || (() => {})}
@@ -304,7 +305,7 @@ export default function ConversationCard({
 
           {/* Status indicator */}
           {node.status && node.status !== 'completed' && (
-            <div className="flex-shrink-0 border-t border-gray-200 pt-2 mt-2">
+            <div className="flex-shrink-0 border-t border-gray-200 pt-3 mt-3">
               <Space className="w-full justify-between">
                 <Text type="secondary" className="text-sm">
                   Status: {node.status === 'running' ? 'Executing...' : node.status === 'error' ? 'Execution failed' : 'Waiting'}
